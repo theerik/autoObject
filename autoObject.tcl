@@ -50,9 +50,9 @@ oo::class create autoObject {
     #--------------------------------------------------------------------------
     # autoObject constructor
     #
-    # The constructor takes as input an array defining the object to be created.
-    # The defining array has the field names as keys, with each key pointing to
-    # a list of 5 elements:
+    # The constructor takes as input a list defining the object to be created.
+    # The defining list has the form of key/value pairs, with field names
+    # as keys paired with a list of 5 elements:
     #   {   field_offset    # must start at 0, incr by field_size, leave no gaps
     #       field_size      # max size of field in bytes in serialized stream
     #       field_type      # name of the data type.  Must support methods used
@@ -62,15 +62,16 @@ oo::class create autoObject {
     #                       # type <field_type>, not used or examined by
     #                       # autoObject.  Can be empty {}.
     #   }
-    # There is one other valid key, "variable_length_object", which can be true
-    # or false (or not defined).  If defined true, input checking for too-small
-    # input is disabled, and the last field is treated as variable in size.
+    # There is one special valid key name, "variable_length_object", whose
+    # value can be either true or false (or not defined).  If defined true,
+    # input checking for too-small input is disabled, and the last field is
+    # permitted to be variable in size.
     #
-    constructor { dbName args } {
+    constructor { defineL args } {
         # As we read the field list to initialize the fields, parse the
         # sizes and offsets to validate the input.  There should be no
         # missing bytes in the structure.
-        upvar $dbName definingDb
+        array set definingDb $defineL
         set currOffset 0
         set Variable_size false
         set NameL [lsort -command "my showQuerySort definingDb" \
@@ -78,7 +79,7 @@ oo::class create autoObject {
         vlog "class list: [info class instances oo::class ::AutoData::*]"
         foreach field $NameL {
             if {$field eq "variable_length_object" && $definingDb($field)} {
-            vlog "$field: $definingDb($field)"
+                vlog "$field: $definingDb($field)"
                 set Variable_size true
                 continue
             }
@@ -99,18 +100,19 @@ oo::class create autoObject {
                 set tname $basename
             }
             if {[lsearch [info class instances oo::class ::AutoData::*] \
-                                                "::AutoData::Auto_$tname"] != -1} {
-                # Found as a basic Auto type
-                set tname "::AutoData::Auto_$tname"
-            } elseif {[lsearch [info class instances oo::class ::AutoData::*] \
-                       "::AutoData::$tname"] != -1} {
-                # Found as a custom type in the correct namespace
+                                                "::AutoData::$tname"] != -1} {
+                # Found as a type declared in the appropriate namespace
                 set tname "::AutoData::$tname"
             } elseif {[lsearch [info class instances oo::class] \
-                       $tname] != -1} {
-                # Found something poorly set up; nothing else to do here
-                # but either keep going or die in error
+                       "*$tname"] != -1} {
+                # Found something not in the right namespace; we either try it
+                # or die in error and we may as well keep going and try it.
+                set msg "No $tname in expected namespace.  Found %s and will try it."
+                set tname [lindex [info class instances oo::class] \
+                           [lsearch [info class instances oo::class] "*$tname"]]
+                puts [format $msg $tname]
             } else {
+                puts "List of classes: [info class instances oo::class]"
                 error "Unknown type requested: $tname"
             }
             set initData [lindex $fieldList 3]
@@ -156,25 +158,48 @@ oo::class create autoObject {
     method get {args} {
         set outL {}
         if {$args == {}} {
-            foreach name $NameL {
-                lappend outL $name $DataArray($name)
+            foreach key $NameL {
+                if {[llength $DataArray($key)] > 1} {
+                    set tempL {}
+                    foreach obj $DataArray($key) {
+                        lappend tempL [$obj get]
+                    }
+                    lappend outL $key {*}$tempL
+                } else {
+                    lappend outL $key [$DataArray($key) get]
+                }
             }
-            return $outL
-        }
-        if {[llength $args] == 1} {
+        } elseif {[llength $args] == 1} {
             if {[info exists DataArray($args)]} {
-                return $DataArray($args)
+                if {[llength $DataArray($args)] > 1} {
+                    set tempL {}
+                    foreach obj $DataArray($args) {
+                        lappend tempL [$obj get]
+                    }
+                    return $tempL
+                } else {
+                    return [$DataArray($args) get]
+                }
             } else {
                 alert "Requesting non-existant field in [info object class \
                         [self object]] [self object]: $args"
             }
-        }
-        foreach {key} $args {
-            if {[info exists DataArray($key)]} {
-                lappend outL $DataArray($key)]
-            } else {
-                alert "Requesting non-existant field in [info object class \
-                        [self object]] [self object]: $key"
+        } else {
+            foreach {key} $args {
+                if {[info exists DataArray($key)]} {
+                    if {[llength $DataArray($key)] > 1} {
+                        set tempL {}
+                        foreach obj $DataArray($key) {
+                            lappend tempL [$obj get]
+                        }
+                        lappend outL {*}$tempL
+                    } else {
+                        lappend outL [$DataArray($key) get]
+                    }
+                } else {
+                    alert "Requesting non-existant field in [info object class \
+                            [self object]] [self object]: $key"
+                }
             }
         }
         return $outL
@@ -198,6 +223,15 @@ oo::class create autoObject {
             }
             DataArray($key) set $val
         }
+    }
+
+    #--------------------------------------------------------------------------
+    # autoObject.follow
+    #
+    # Returns a fully qualified path to the value of the data object;
+    # normally used by GUIs to use a field as a textvariable.
+    method follow {key} {
+        return [info object namespace $DataArray($key)]::MyValue
     }
 
     #--------------------------------------------------------------------------

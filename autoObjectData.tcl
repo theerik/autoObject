@@ -24,9 +24,9 @@ exec tclsh "$0" ${1+"$@"}
 #                   * int16_bt  (Big-endian)
 #                   * int32_bt  (Big-endian)
 #                   * float_t
+#                   * time_t    (Unix system time)
 
 #                   * string_t
-#                   * time_t    (Unix system time)
 #
 #--------------------------------------------------------------------------
 #
@@ -44,11 +44,14 @@ exec tclsh "$0" ${1+"$@"}
 #   * toList
 #   * fromList
 #   * toString
+# All classes should be declared in the ::AutoData:: namespace, as below.
+# To allow the "follow" method of the autoObject to work, the actual data
+# value should be held in the canonical name "MyValue".
 
 #--------------------------------------------------------------------------
-#   Auto_uint8_t
+#   uint8_t
 #
-oo::class create ::AutoData::Auto_uint8_t {
+oo::class create ::AutoData::uint8_t {
     variable MyValue
 
     constructor {args} { set MyValue 0 }
@@ -60,10 +63,10 @@ oo::class create ::AutoData::Auto_uint8_t {
 }
 
 #--------------------------------------------------------------------------
-#   Auto_int8_t
+#   int8_t
 #
-oo::class create ::AutoData::Auto_int8_t {
-    superclass ::AutoData::Auto_uint8_t
+oo::class create ::AutoData::int8_t {
+    superclass ::AutoData::uint8_t
 
     method fromList {inList} {
         my variable MyValue
@@ -75,9 +78,9 @@ oo::class create ::AutoData::Auto_int8_t {
 }
 
 #--------------------------------------------------------------------------
-#   Auto_uint16_t
+#   uint16_t
 #
-oo::class create ::AutoData::Auto_uint16_t {
+oo::class create ::AutoData::uint16_t {
     variable MyValue
 
     constructor {args} { set MyValue 0 }
@@ -96,11 +99,11 @@ oo::class create ::AutoData::Auto_uint16_t {
 }
 
 #--------------------------------------------------------------------------
-#   Auto_uint16_bt
+#   uint16_bt
 #
 # Same as uint16_t except big-endian in list format
-oo::class create ::AutoData::Auto_uint16_bt {
-    superclass ::AutoData::Auto_uint16_t
+oo::class create ::AutoData::uint16_bt {
+    superclass ::AutoData::uint16_t
 
     method toList {} {
         set outL [format "%d" [expr {($MyValue & 0xFF00) >> 8}]]
@@ -113,10 +116,10 @@ oo::class create ::AutoData::Auto_uint16_bt {
 }
 
 #--------------------------------------------------------------------------
-#   Auto_int16_t
+#   int16_t
 #
-oo::class create ::AutoData::Auto_int16_t {
-    superclass ::AutoData::Auto_uint16_t
+oo::class create ::AutoData::int16_t {
+    superclass ::AutoData::uint16_t
 
     method fromList {inList} {
         my variable MyValue
@@ -128,10 +131,10 @@ oo::class create ::AutoData::Auto_int16_t {
 }
 
 #--------------------------------------------------------------------------
-#   Auto_int16_bt
+#   int16_bt
 #
-oo::class create ::AutoData::Auto_int16_bt {
-    superclass ::AutoData::Auto_uint16_bt
+oo::class create ::AutoData::int16_bt {
+    superclass ::AutoData::uint16_bt
 
     method fromList {inList} {
         my variable MyValue
@@ -143,9 +146,9 @@ oo::class create ::AutoData::Auto_int16_bt {
 }
 
 #--------------------------------------------------------------------------
-#   Auto_uint32_t
+#   uint32_t
 #
-oo::class create ::AutoData::Auto_uint32_t {
+oo::class create ::AutoData::uint32_t {
     variable MyValue
 
     constructor {args} { set MyValue 0 }
@@ -166,11 +169,11 @@ oo::class create ::AutoData::Auto_uint32_t {
 }
 
 #--------------------------------------------------------------------------
-#   Auto_uint32_bt
+#   uint32_bt
 #
 # Same as uint32_t except big-endian in list format
-oo::class create ::AutoData::Auto_uint32_bt {
-    superclass ::AutoData::Auto_uint32_t
+oo::class create ::AutoData::uint32_bt {
+    superclass ::AutoData::uint32_t
 
     method toList {} {
         set outL     [format "%d" [expr {($MyValue & 0xFF000000) >> 24}]]
@@ -185,10 +188,10 @@ oo::class create ::AutoData::Auto_uint32_bt {
 }
 
 #--------------------------------------------------------------------------
-#   Auto_int32_t
+#   int32_t
 #
-oo::class create ::AutoData::Auto_int32_t {
-    superclass ::AutoData::Auto_uint32_t
+oo::class create ::AutoData::int32_t {
+    superclass ::AutoData::uint32_t
 
     method fromList {inList} {
         my variable MyValue
@@ -200,10 +203,10 @@ oo::class create ::AutoData::Auto_int32_t {
 }
 
 #--------------------------------------------------------------------------
-#   Auto_int32_bt
+#   int32_bt
 #
-oo::class create ::AutoData::Auto_int32_bt {
-    superclass ::AutoData::Auto_uint32_bt
+oo::class create ::AutoData::int32_bt {
+    superclass ::AutoData::uint32_bt
 
     method fromList {inList} {
         my variable MyValue
@@ -215,9 +218,9 @@ oo::class create ::AutoData::Auto_int32_bt {
 }
 
 #--------------------------------------------------------------------------
-#   Auto_float_t
+#   float_t
 #
-oo::class create ::AutoData::Auto_float_t {
+oo::class create ::AutoData::float_t {
     variable MyValue
 
     constructor {args} { set MyValue 0.0 }
@@ -249,7 +252,7 @@ oo::class create ::AutoData::Auto_float_t {
 }
 
 #--------------------------------------------------------------------------
-#   Auto_time_t
+#   time_t
 #
 # Time is stored internally as a Unix time_t - a 32-bit count of seconds
 # since the Unix epoch (Jan 1, 1970).  The set method will accept an integer
@@ -262,8 +265,8 @@ oo::class create ::AutoData::Auto_float_t {
 # stringifying; we also add a method to set the default string later.
 # toString accepts a format string; if one is not provided it uses the
 # default string set earlier.
-oo::class create ::AutoData::Auto_time_t {
-    superclass ::AutoData::Auto_uint32_t
+oo::class create ::AutoData::time_t {
+    superclass ::AutoData::uint32_t
     variable MyFormatStr
 
     constructor {args} {
@@ -298,3 +301,70 @@ oo::class create ::AutoData::Auto_time_t {
     }
 }
 
+#--------------------------------------------------------------------------
+#   string_t
+#
+# N.B. This class expects the length of the field to be passed in on creation
+# as an additional argument.  If not provided, the constructor will fail.
+#
+# The string_t autoData type is constrained by the length of its field.  It
+# will truncate any attempt to set it to longer to the first N characters that
+# will fit into that field length.  If the input is shorter, the string will
+# be null terminated and filled with NULLs in the line format.
+oo::class create ::AutoData::string_t {
+    variable MyValue MyLength
+
+    constructor {args} {
+        if {![string is digit -strict [lindex $args 0]]} {
+            error "String_t constructor error: \
+                   field length not specified in defining list."
+        }
+        set MyLength [lindex $args 0]
+        set MyValue ""
+    }
+    method get {} { return $MyValue }
+    method set {newVal} {
+        set MyValue [string range $newVal 0 [expr {$MyLength - 1}] ]
+    }
+    method toString {} { return $MyValue }
+    method toList {} {
+        binary scan $MyValue c* dataL
+        if {[llength $dataL] < $MyLength} {
+            lappend dataL {*}[lrepeat [expr {$MyLength - [llength $dataL]}] 0]
+        }
+        return $dataL
+    }
+    method fromList {inList} {
+        set MyValue [string trimright [binary format c* $inList] '\0']
+    }
+}
+
+#--------------------------------------------------------------------------
+#   unicode_t
+#
+# N.B. This class expects the length of the field *IN CHARACTERS* to be
+# passed in on creation as an additional argument.  This is different from
+# the length in bytes, as characters are allocated 2 bytes each.
+# If not provided, the constructor will fail.  If the length is incorrect,
+# the list/byte formats produced will not be the correct length.
+#
+# The unicode_t autoData type is constrained by the length of its field.  It
+# will truncate any attempt to set it to longer to the first N characters that
+# will fit into that field length.  If the input is shorter, the string will
+# be null terminated and filled with NULLs in the line format.
+oo::class create ::AutoData::unicode_t {
+    superclass ::AutoData::string_t
+    variable MyValue MyLength
+
+    method toList {} {
+        binary scan [encoding convertto unicode $MyValue] c* dataL
+        if {[llength $dataL] < [expr {$MyLength * 2}} {
+            lappend dataL {*}[lrepeat [expr {$MyLength * 2 - [llength $dataL]}] 0]
+        }
+        return $dataL
+    }
+    method fromList {inList} {
+        set MyValue [string trimright [encoding convertfrom unicode \
+                                       [binary format c* $inList]] '\0']
+    }
+}
