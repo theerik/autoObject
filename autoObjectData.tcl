@@ -30,49 +30,55 @@ exec tclsh "$0" ${1+"$@"}
 #
 #--------------------------------------------------------------------------
 #
-# Copyright 2015, Erik N. Johnson
+# Copyright 2015-16, Erik N. Johnson
 #
 #--------------------------------------------------------------------------
 
 #--------------------------------------------------------------------------
 #  autoData classes
 #
-# All types used as AutoObject fields must support the following
+# All types used as AutoObject fields *must* support the following
 # canonical methods:
 #   * get
 #   * set
 #   * toList
 #   * fromList
 #   * toString
-# All classes should be declared in the ::AutoData:: namespace, as below.
+# All classes should be declared in the ::AutoObject:: namespace, as below.
 # To allow the "follow" method of the autoObject to work, the actual data
-# value should be held in the canonical name "MyValue".
+# value should be held in the canonical name "MyValue".  If the data value
+# is not held in MyValue, the follow method should be redefined for the
+# containing class to behave correctly.
 
 #--------------------------------------------------------------------------
 #   uint8_t
 #
-oo::class create ::AutoData::uint8_t {
+oo::class create ::AutoObject::uint8_t {
     variable MyValue
 
     constructor {args} { set MyValue 0 }
     method get {} { return $MyValue }
-    method set {newVal} { set MyValue $newVal }
-    method toString {} { return [format "%3d" $MyValue] }
+    method set {newVal} { set MyValue [expr {$newVal % 256}]}
+    method toString {} { return [format "%-3d" $MyValue] }
     method toList {} { return [format "%d" [expr {$MyValue % 256}]] }
-    method fromList {inList} { set MyValue [expr {[lindex $inList 0] % 256}] }
+    method fromList {inVal} { set MyValue [expr {$inVal % 256}] }
 }
 
 #--------------------------------------------------------------------------
 #   int8_t
 #
-oo::class create ::AutoData::int8_t {
-    superclass ::AutoData::uint8_t
+oo::class create ::AutoObject::int8_t {
+    superclass ::AutoObject::uint8_t
 
+    method set {newVal} { 
+        my variable MyValue
+        set MyValue $newVal
+    }
     method fromList {inList} {
         my variable MyValue
         next $inList
         if {$MyValue & 0x80} {
-            set MyValue [expr {$MyValue - 256}]
+            incr MyValue -256
         }
     }
 }
@@ -80,13 +86,13 @@ oo::class create ::AutoData::int8_t {
 #--------------------------------------------------------------------------
 #   uint16_t
 #
-oo::class create ::AutoData::uint16_t {
+oo::class create ::AutoObject::uint16_t {
     variable MyValue
 
     constructor {args} { set MyValue 0 }
     method get {} { return $MyValue }
-    method set {newVal} { set MyValue $newVal }
-    method toString {} { return [format "%5d" $MyValue] }
+    method set {newVal} { set MyValue [expr {$newVal % 65536}] }
+    method toString {} { return [format "%-5d" $MyValue] }
     method toList {} {
         set outL [format "%d" [expr {$MyValue & 0x00FF}]]
         lappend outL [format "%d" [expr {($MyValue & 0xFF00) >> 8}]]
@@ -102,8 +108,8 @@ oo::class create ::AutoData::uint16_t {
 #   uint16_bt
 #
 # Same as uint16_t except big-endian in list format
-oo::class create ::AutoData::uint16_bt {
-    superclass ::AutoData::uint16_t
+oo::class create ::AutoObject::uint16_bt {
+    superclass ::AutoObject::uint16_t
 
     method toList {} {
         set outL [format "%d" [expr {($MyValue & 0xFF00) >> 8}]]
@@ -118,14 +124,18 @@ oo::class create ::AutoData::uint16_bt {
 #--------------------------------------------------------------------------
 #   int16_t
 #
-oo::class create ::AutoData::int16_t {
-    superclass ::AutoData::uint16_t
+oo::class create ::AutoObject::int16_t {
+    superclass ::AutoObject::uint16_t
 
+    method set {newVal} { 
+        my variable MyValue
+        set MyValue $newVal
+    }
     method fromList {inList} {
         my variable MyValue
         next $inList
         if {$MyValue & 0x8000} {
-            set MyValue [expr {$MyValue - 65536}]
+            incr MyValue -65536
         }
     }
 }
@@ -133,14 +143,18 @@ oo::class create ::AutoData::int16_t {
 #--------------------------------------------------------------------------
 #   int16_bt
 #
-oo::class create ::AutoData::int16_bt {
-    superclass ::AutoData::uint16_bt
+oo::class create ::AutoObject::int16_bt {
+    superclass ::AutoObject::uint16_bt
 
+    method set {newVal} { 
+        my variable MyValue
+        set MyValue $newVal
+    }
     method fromList {inList} {
         my variable MyValue
         next $inList
         if {$MyValue & 0x8000} {
-            set MyValue [expr {$MyValue - 65536}]
+            incr MyValue -65536
         }
     }
 }
@@ -148,13 +162,13 @@ oo::class create ::AutoData::int16_bt {
 #--------------------------------------------------------------------------
 #   uint32_t
 #
-oo::class create ::AutoData::uint32_t {
+oo::class create ::AutoObject::uint32_t {
     variable MyValue
 
     constructor {args} { set MyValue 0 }
     method get {} { return $MyValue }
-    method set {newVal} { set MyValue $newVal }
-    method toString {} { return [format "%10d" $MyValue] }
+    method set {newVal} { set MyValue [expr {$newVal % 4294967296}] }
+    method toString {} { return [format "%-10d" $MyValue] }
     method toList {} {
         set outL     [format "%d" [expr { $MyValue & 0x000000FF}]]
         lappend outL [format "%d" [expr {($MyValue & 0x0000FF00) >> 8}]]
@@ -172,8 +186,8 @@ oo::class create ::AutoData::uint32_t {
 #   uint32_bt
 #
 # Same as uint32_t except big-endian in list format
-oo::class create ::AutoData::uint32_bt {
-    superclass ::AutoData::uint32_t
+oo::class create ::AutoObject::uint32_bt {
+    superclass ::AutoObject::uint32_t
 
     method toList {} {
         set outL     [format "%d" [expr {($MyValue & 0xFF000000) >> 24}]]
@@ -190,14 +204,18 @@ oo::class create ::AutoData::uint32_bt {
 #--------------------------------------------------------------------------
 #   int32_t
 #
-oo::class create ::AutoData::int32_t {
-    superclass ::AutoData::uint32_t
+oo::class create ::AutoObject::int32_t {
+    superclass ::AutoObject::uint32_t
 
+    method set {newVal} { 
+        my variable MyValue
+        set MyValue $newVal
+    }
     method fromList {inList} {
         my variable MyValue
         next $inList
         if {$MyValue & 0x80000000} {
-            set MyValue [expr {$MyValue - 2147483648}]
+            incr MyValue -4294967296
         }
     }
 }
@@ -205,14 +223,18 @@ oo::class create ::AutoData::int32_t {
 #--------------------------------------------------------------------------
 #   int32_bt
 #
-oo::class create ::AutoData::int32_bt {
-    superclass ::AutoData::uint32_bt
+oo::class create ::AutoObject::int32_bt {
+    superclass ::AutoObject::uint32_bt
 
+    method set {newVal} { 
+        my variable MyValue
+        set MyValue $newVal
+    }
     method fromList {inList} {
         my variable MyValue
         next $inList
         if {$MyValue & 0x80000000} {
-            set MyValue [expr {$MyValue - 2147483648}]
+            incr MyValue -4294967296
         }
     }
 }
@@ -220,20 +242,20 @@ oo::class create ::AutoData::int32_bt {
 #--------------------------------------------------------------------------
 #   float_t
 #
-oo::class create ::AutoData::float_t {
+oo::class create ::AutoObject::float_t {
     variable MyValue
 
     constructor {args} { set MyValue 0.0 }
     method get {} { return $MyValue }
     method set {newVal} {
         if [catch {set MyValue [expr {$newVal + 0.0}]} errS] {
-            alert "$newVal is Not a Number!  ($errS)"
+            log::alert "$newVal is Not a Number!  ($errS)"
             set MyValue "NaN"
         }
     }
     method toString {} {
         if [catch {set outS [format %8f $MyValue]}] {
-            alert "$MyValue is Not a Number!"
+            log::alert "$MyValue is Not a Number!"
         }
         return $outS
     }
@@ -265,8 +287,8 @@ oo::class create ::AutoData::float_t {
 # stringifying; we also add a method to set the default string later.
 # toString accepts a format string; if one is not provided it uses the
 # default string set earlier.
-oo::class create ::AutoData::time_t {
-    superclass ::AutoData::uint32_t
+oo::class create ::AutoObject::time_t {
+    superclass ::AutoObject::uint32_t
     variable MyFormatStr
 
     constructor {args} {
@@ -311,7 +333,7 @@ oo::class create ::AutoData::time_t {
 # will truncate any attempt to set it to longer to the first N characters that
 # will fit into that field length.  If the input is shorter, the string will
 # be null terminated and filled with NULLs in the line format.
-oo::class create ::AutoData::string_t {
+oo::class create ::AutoObject::string_t {
     variable MyValue MyLength
 
     constructor {args} {
@@ -352,13 +374,13 @@ oo::class create ::AutoData::string_t {
 # will truncate any attempt to set it to longer to the first N characters that
 # will fit into that field length.  If the input is shorter, the string will
 # be null terminated and filled with NULLs in the line format.
-oo::class create ::AutoData::unicode_t {
-    superclass ::AutoData::string_t
+oo::class create ::AutoObject::unicode_t {
+    superclass ::AutoObject::string_t
     variable MyValue MyLength
 
     method toList {} {
         binary scan [encoding convertto unicode $MyValue] c* dataL
-        if {[llength $dataL] < [expr {$MyLength * 2}} {
+        if {[llength $dataL] < [expr {$MyLength * 2}]} {
             lappend dataL {*}[lrepeat [expr {$MyLength * 2 - [llength $dataL]}] 0]
         }
         return $dataL
@@ -366,5 +388,52 @@ oo::class create ::AutoData::unicode_t {
     method fromList {inList} {
         set MyValue [string trimright [encoding convertfrom unicode \
                                        [binary format c* $inList]] '\0']
+    }
+}
+
+#--------------------------------------------------------------------------
+#   enum_mix
+#
+# N.B. This class is a mixin for classes based on the uint8_t class (or
+# uint16_t or uint32_t if you need large fields for some reason).
+# The host class is expected to provide most of the features, including any
+# of the length-specific code; the mixin only provides an override for the
+# "set" and "toString" methods.
+#
+# N.B. The enum_TYPE class is a bit of code clevverness that expects to be
+# initialized before use.  The base class provides the mechanisms; initialization
+# only provides the lookup table mapping the symbol to the enum value.  
+# Without providing the definition of the enum, it's not very useful.
+#
+# To initialize, immediately after mixing it into the base class, invoke the
+# "setEnumDef" method with a list consisting of name/value pairs.  Objects of
+# the ensuing class will then accept the symbolic names of the enum as inputs
+# to "set", and will print via "toString" the symbolic names.
+#
+oo::class create ::AutoObject::enum_mix {
+    variable defArray
+
+    method set {newVal} {
+        my variable MyValue
+        set ns [info object namespace [info object class [self object]]]
+        if {[info exists ${ns}::defArray($newVal)]} {
+            set MyValue [set ${ns}::defArray($newVal)]
+        } elseif {[info exists ${ns}::defArray(val-$newVal)]} {
+            set MyValue $newVal
+        } else {
+            error "Tried to set enum [self] to unknown value $newVal"
+        }
+    }
+    method toString {} {
+        my variable MyValue
+        set ns [info object namespace [info object class [self object]]]
+        return [set ${ns}::defArray(val-$MyValue)]
+    }
+}
+proc setEnumDef {classname defL} {
+    namespace upvar [info object namespace $classname] defArray dA
+    array set dA $defL
+    foreach {key val} [array get dA] {
+        set dA(val-$val) $key
     }
 }
