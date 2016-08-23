@@ -208,7 +208,8 @@ oo::class create ::autoObject {
                 }
             } else {
                 log::error "Requesting non-existant field in [info object class \
-                        [self object]] [self object]: $args"
+                            [self object]] [self object]: \"$args\" not in \
+                            \"[array names DataArray]\""
             }
         } else {
             foreach {key} $args {
@@ -224,8 +225,9 @@ puts "ll: [llength $tempL]  tL: -$tempL-"
                         lappend outL [$DataArray($key) get]
                     }
                 } else {
-                    log::error "Requesting non-existant field in [info object class \
-                            [self object]] [self object]: $key"
+                    log::error "Requesting non-existant field in [info object \
+                                class [self object]] [self object]: \"$key\" \
+                                not in \"[array names DataArray]\""
                 }
             }
         }
