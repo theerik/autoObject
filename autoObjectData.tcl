@@ -416,9 +416,10 @@ oo::class create ::AutoObject::enum_mix {
     method set {newVal} {
         my variable MyValue
         set ns [info object namespace [info object class [self object]]]
-        if {[info exists ${ns}::defArray($newVal)]} {
-            set MyValue [set ${ns}::defArray($newVal)]
-        } elseif {[info exists ${ns}::defArray(val-$newVal)]} {
+        upvar ${ns}::defArray defArray
+        if {[info exists defArray($newVal)]} {
+            set MyValue $defArray($newVal)
+        } elseif {[info exists defArray(val-$newVal)]} {
             set MyValue $newVal
         } else {
             error "Tried to set enum [self] to unknown value $newVal"
@@ -427,13 +428,124 @@ oo::class create ::AutoObject::enum_mix {
     method toString {} {
         my variable MyValue
         set ns [info object namespace [info object class [self object]]]
-        return [set ${ns}::defArray(val-$MyValue)]
+        upvar ${ns}::defArray defArray
+        return $defArray(val-$MyValue)
     }
 }
-proc setEnumDef {classname defL} {
+proc ::AutoObject::setEnumDef {classname defL} {
     namespace upvar [info object namespace $classname] defArray dA
     array set dA $defL
     foreach {key val} [array get dA] {
         set dA(val-$val) $key
     }
+}
+
+
+#--------------------------------------------------------------------------
+#   bitfield_mix
+#
+# N.B. This class is a mixin for classes based on the uint8_t class (or
+# uint16_t or uint32_t if you need large fields for some reason).
+# The host class is expected to provide most of the features, including any
+# of the length-specific code; the mixin only provides an override for the
+# "set", "get" and "toString" methods.
+#
+# N.B. The bitfield_TYPE class is a bit of code clevverness that expects to be
+# initialized before use.  The base class provides the mechanisms; 
+# initialization only provides the lookup table mapping the fields to the bits.
+# Without providing the definition of the enum, it's not very useful.
+#
+# To initialize, immediately after mixing it into the base class, invoke the
+# "setBitfieldDef" method with a list consisting of field definition lists,
+# where each field definition is the name, number of bits, and (optional)
+# enum value of the bit combinations (in order 0 -> max).  
+#
+oo::class create ::AutoObject::bitfield_mix {
+    variable ns
+
+    method get {args} {
+        my variable MyValue
+        set ns [info object namespace [info object class [self object]]]
+        upvar ${ns}::defArray defArray
+        if {[llength $args] == 0} {
+            return $MyValue
+        } else {
+            set outL {}
+            foreach field $args {
+                set val [expr ($MyValue & $defArray($field,mask) ) \
+                                    >> $defArray($field,shift)]
+                lappend outL $val
+            }
+            return $outL
+        }
+    }
+    method set {args} {
+        my variable MyValue
+        set ns [info object namespace [info object class [self object]]]
+        upvar ${ns}::defArray defArray
+        set len [llength $args]
+        if {$len == 1} {
+            # setting entire value
+            set MyValue $args
+        } elseif {$len % 2 == 0} {
+            # If setting fields, must be a list of field/value pairs
+            foreach {key val} $args {
+                # If there is an enum and the input is a symbol, use its value
+                if {[info exists defArray($key,enumL)] && \
+                        [lsearch $defArray($key,enumL) $val] != -1} {
+                    set val [lsearch $defArray($key,enumL) $val]
+                }
+                set MyValue [expr ($MyValue & ~$defArray($key,mask)) | \
+                                    (($val << $defArray($key,shift)) & \
+                                    $defArray($key,mask))]
+            }
+        } else {
+            error "Odd number of items in key/value list: $args"
+        }
+    }
+    method toString {} {
+        my variable MyValue
+        set ns [info object namespace [info object class [self object]]]
+        upvar ${ns}::defArray defArray
+        set outS ""
+        set newline ""
+        set nameSize [expr [string length [lindex $defArray(nameL) 0]] + 44]
+        set outS [format "%s  Decoded to:\n" [next]]
+        foreach name $defArray(nameL) {
+            set val [expr ($MyValue & $defArray($name,mask)) \
+                                    >> $defArray($name,shift)]
+            # If there's an enum, print the symbol
+            if {[info exists defArray($name,enumL)] && \
+                    $val < [llength $defArray($name,enumL)]} {
+                set valS [lindex $defArray($name,enumL) $val]
+            } else {
+                set size $defArray($name,size)
+                set valS [format "b'%0${size}b" $val]
+            }
+            append outS [format "%${nameSize}s - %s\n" $name $valS]
+        }
+        # trim to display multiline output properly in autoObject output
+        set outS [string trimright $outS "\n"]
+        return $outS
+    }
+}
+proc ::AutoObject::setBitfieldDef {classname defL} {
+    namespace upvar [info object namespace $classname] defArray dA
+    set offset 0
+    foreach bf $defL {
+        set name [lindex $bf 0]
+        lappend nameL $name
+        set size [lindex $bf 1]
+        set dA($name,size) $size
+        if {[llength $bf] > 2} {
+            set dA($name,enumL) [lindex $bf 2]
+        }
+        set maskS [string repeat "1" $size]
+        append maskS [string repeat "0" $offset]
+        scan $maskS "%b" mask
+        set dA($name,shift) $offset
+        set dA($name,mask) $mask
+        set offset [expr {$offset + $size}]
+    }
+    set dA(nameL) $nameL
 }

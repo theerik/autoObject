@@ -18,6 +18,7 @@ set firstDefList {
     FieldSeven  {15  4   time_t     "" {"%Y-%m-%d %H:%M:%S"}  }
     FunkyField  {19  1   myEnum     0       {}  }
     StrField    {20  15  string_t   "How you like me now, motherf***er?" 15 }
+    StatField   {35  2   myStatus   6482  {}  }
 }
 
 #--------------------------------------------------------------------------
@@ -32,16 +33,29 @@ oo::class create myEnum {
         set MyValue [expr {($MyValue + $tweak) % 3}]
     }
 }
-setEnumDef ::myEnum {
+::AutoObject::setEnumDef ::myEnum {
     "False"             0   
     "True"              1   
     "File Not Found"    2   
 }
 
+#--------------------------------------------------------------------------
+# test bitfield type
+#
+oo::class create myStatus {
+    superclass ::AutoObject::uint16_t
+    mixin ::AutoObject::bitfield_mix
+}
+::AutoObject::setBitfieldDef ::myStatus {
+    {"Mode"      3   {"Active" "Idle" "LP1" "LP2" "LP3" "LP4"}   }
+    {"Freq"      8   }
+    {"Flag1"     1   }
+    {"Flag2"     1   {Neg Pos}  }
+    {"Flag3"     1   {OFF ON}   }
+}
 
 #set ::verbose true
 set ::verbose false
-
 
 set initL {FieldOne 1 FieldTwo 150 FieldThree {1 2 3} FieldFour 3.141590118408203 \
             FieldFive 50000 FieldSix -5 FieldSeven}
@@ -50,7 +64,7 @@ set initL {FieldOne 1 FieldTwo 150 FieldThree {1 2 3} FieldFour 3.14159011840820
 set currTime [clock seconds]
 set firstObject [autoObject new $firstDefList]
 lappend initL $currTime
-lappend initL FunkyField 0 StrField "How you like me"
+lappend initL FunkyField 0 StrField "How you like me" StatField 6482
 
 # Test initialization
 puts "From intialization:"
@@ -59,16 +73,31 @@ set valueL [$firstObject get]
 if {![struct::list equal $valueL $initL]} {
     error "Initialization/get failed:\n\tExpected: $initL\n\tActual:   $valueL"
 } else {
-    puts "Initialization/get PASS"
+    if {[$firstObject StatField get Mode] != 2} {
+        error "Bitfield get failed:\n\tExpected: 2\n\tActual:   [$firstObject StatField get Mode]"
+    } else {
+        puts "Initialization/get PASS"
+    }
 }
 puts ""
+
+puts "\nSpecial method test: FunkyField was [$firstObject FunkyField toString]"
+$firstObject FunkyField extraSpecial 5
+puts "special method test: FunkyField now [$firstObject FunkyField toString]"
+if {[$firstObject get FunkyField] != 2} {
+    error "forwarded special method failed:\n\tExpected: 2\n\tActual:   [$firstObject get FunkyField]"
+} else {
+    puts "forwarded special method PASS"
+}
 
 # Test set
 puts "Setting fields:"
 $firstObject set FunkyField "True" FieldThree {4 5 6} FieldOne 987654321
+$firstObject StatField set Mode 6 Flag3 ON
 set setL [lreplace $valueL 1 1 987654321]
 set setL [lreplace $setL 5 5 {4 5 6}]
 set setL [lreplace $setL 15 15 1]
+set setL [lreplace $setL 19 19 14678]
 set valueL [$firstObject get]
 if {![struct::list equal $valueL $setL]} {
     error "Set failed:\n\tExpected: $setL\n\tActual:   $valueL"
@@ -84,7 +113,7 @@ lappend saveL [expr { $currTime & 0x000000FF}]
 lappend saveL [expr {($currTime & 0x0000FF00) >> 8}]
 lappend saveL [expr {($currTime & 0x00FF0000) >> 16}]
 lappend saveL [expr {($currTime & 0xFF000000) >> 24}]
-lappend saveL 1 72 111 119 32 121 111 117 32 108 105 107 101 32 109 101
+lappend saveL 1 72 111 119 32 121 111 117 32 108 105 107 101 32 109 101 86 57
 puts [$firstObject toList]
 set valueL [$firstObject toList]
 if {![struct::list equal $valueL $saveL]} {
@@ -99,7 +128,8 @@ puts "Save to Byte Array..."
 set valueBA [$firstObject toByteArray]
 set expectBA [binary format "c*" $saveL]
 if {![string equal $valueBA $expectBA]} {
-    error "toByteArray failed:\n\tExpected: [binary scan $expectBA "c*"]\n\tActual:   [binary scan $valueBA "c*"]"
+    error "toByteArray failed:\n\tExpected: [binary scan $expectBA "c*"]\n\
+                                \tActual:   [binary scan $valueBA "c*"]"
 } else {
     puts "toByteArray PASS"
 }
@@ -107,13 +137,14 @@ puts ""
 
 # Test fromList
 set list1 {1 0 1 0 96 10 9 -10 -48 99 73 64 120 232 175 0 0 0 0 2 \
-                110 111 119 44 32 109 111 116 104 101 114 102 42 42 42}
+                110 111 119 44 32 109 111 116 104 101 114 102 42 42 42 96 160}
 $firstObject fromList $list1
 puts "From modified list:"
 puts [$firstObject toString]
 set valueL [$firstObject get]
-set expectL {FieldOne 65537 FieldTwo 96 FieldThree {10 9 246} FieldFour 3.146717071533203 \
-             FieldFive 59512 FieldSix -81 FieldSeven 0 FunkyField 2 StrField "now, motherf***"}
+set expectL {FieldOne 65537 FieldTwo 96 FieldThree {10 9 246} \
+            FieldFour 3.146717071533203 FieldFive 59512 FieldSix -81 \
+            FieldSeven 0 FunkyField 2 StrField "now, motherf***" StatField 41056}
 if {![struct::list equal $valueL $expectL]} {
     error "from modified list failed:\n\tExpected: $expectL\n\tActual:   $valueL"
 } else {
@@ -140,15 +171,6 @@ foreach {field paramlist} $firstDefList {
     puts [format "Field Name: %20s : %s " $field [$firstObject $field toList] ]
 }
 puts "\nArray method test: FieldThree is [$firstObject FieldThree get]"
-puts "\nSpecial method test: FunkyField was [$firstObject FunkyField toString]"
-$firstObject FunkyField extraSpecial 4
-puts "special method test: FunkyField now [$firstObject FunkyField toString]"
-if {[$firstObject get FunkyField] != 2} {
-    error "forwarded special method failed:\n\tExpected: 2\n\tActual:   [$firstObject get FunkyField]"
-} else {
-    puts "forwarded special method PASS"
-}
-
 
 puts ""
 puts "All Tests PASS"

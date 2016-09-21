@@ -28,7 +28,7 @@ package require logger
 
 if {![namespace exists ::AutoObject] } {
     namespace eval ::AutoObject {
-        variable version 0.4
+        variable version 0.5
         logger::init ::autoObject
         logger::import -all -namespace ::autoObject::log ::autoObject
         ::autoObject::log::setlevel warn
@@ -45,8 +45,12 @@ if {![namespace exists ::AutoObject] } {
 #   parse or generate wire format, to programmatically set or get values,
 #   and to output human-readable values for logging and debug.
 oo::class create ::autoObject {
-    variable FieldInfo DataArray NameL
-    variable BlockSize Variable_size Initialized
+    variable BlockSize
+    variable DataArray
+    variable FieldInfo
+    variable Initialized
+    variable NameL
+    variable Variable_size
 
     #--------------------------------------------------------------------------
     # autoObject constructor
@@ -71,10 +75,6 @@ oo::class create ::autoObject {
     # past that size are permitted to be variable in size.
     #
     constructor { defineL } {
-
-        # As we read the field list to initialize the fields, parse the
-        # sizes and offsets to validate the input.  There should be no
-        # missing bytes in the structure.
         logger::import -all -force -namespace log ::autoObject
         
 #log::setlevel debug
@@ -83,13 +83,17 @@ oo::class create ::autoObject {
         set Variable_size 0
         set NameL [lsort -command "my ShowQuerySort definingArr" \
                    [array names definingArr]]
+
+        # As we read the field list to initialize the fields, parse the
+        # sizes and offsets to validate the input.  There should be no
+        # missing bytes in the structure.
         foreach field $NameL {
             if {$field eq "variable_length_object"} {
                 log::debug "$field: $definingArr($field)"
                 set Variable_size $definingArr($field)
-                set idx [lsearch $NameL "variable_length_object"]
                 # Take this special token out of the NameL - we don't want to
                 # set, get, or process it like the others.
+                set idx [lsearch $NameL "variable_length_object"]
                 set NameL [lreplace $NameL $idx $idx]
                 continue
             }
@@ -125,14 +129,15 @@ oo::class create ::autoObject {
                            [lsearch [info class instances oo::class] "*$tname"]]
                 log::warn [format $msg $tname]
             } else {
-                puts "List of classes: [info class instances oo::class ::AutoObject::*]"
+                log::error "Unknown type requested: $tname"
+                log::error "List of classes: [info class instances oo::class ::AutoObject::*]"
                 error "Unknown type requested: $tname"
             }
             set FieldInfo($field,tname) $tname
             set FieldInfo($field,arrcnt) $arrcount
             set initData [lindex $fieldList 3]
             set typeData [lindex $fieldList 4]
-            if $isarray {
+            if {$isarray} {
                 # validate size is an integral number of bytes per entry
                 set bytesPerObj [expr {int($FieldInfo($field,size) / $arrcount)}]
                 if {$arrcount * $bytesPerObj != $FieldInfo($field,size)} {
@@ -207,9 +212,14 @@ oo::class create ::autoObject {
                     return [$DataArray($args) get]
                 }
             } else {
-                log::error "Requesting non-existant field in [info object class \
-                            [self object]] [self object]: \"$args\" not in \
-                            \"[array names DataArray]\""
+                my variable $args
+                if {[info exists $args]} {
+                    return [set $args]
+                } else {
+                    log::error "Requesting non-existant field in [info object \
+                            class [self object]] [self object]: \"$args\" not\
+                            in \"[array names DataArray]\""
+                }
             }
         } else {
             foreach {key} $args {
@@ -219,7 +229,6 @@ oo::class create ::autoObject {
                         foreach obj $DataArray($key) {
                             lappend tempL [$obj get]
                         }
-puts "ll: [llength $tempL]  tL: -$tempL-"
                         lappend outL $tempL
                     } else {
                         lappend outL [$DataArray($key) get]
