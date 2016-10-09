@@ -119,7 +119,7 @@ oo::class create ::autoObject {
                     [info class instances oo::class ::AutoObject::*]} {
                 # Found as a type declared in the appropriate namespace
                 set tname "::AutoObject::$tname"
-            } elseif {"*$tname" in [info class instances oo::class]} {
+            } elseif {[lsearch [info class instances oo::class] "*$tname"] != -1} {
                 # Found something not in the right namespace; we either try it
                 # or die in error and we may as well keep going and try it.
                 log::debug "class list: [info class instances oo::class ::AutoObject::*]"
@@ -129,7 +129,8 @@ oo::class create ::autoObject {
                 log::info [format $msg $tname]
             } else {
                 log::error "Unknown type requested: $tname"
-                log::error "List of classes: [info class instances oo::class ::AutoObject::*]"
+                log::error "List of autoObject classes: [info class instances oo::class ::AutoObject::*]"
+                log::error "List of classes: [info class instances oo::class]"
                 error "Unknown type requested: $tname"
             }
             set FieldInfo($field,tname) $tname
