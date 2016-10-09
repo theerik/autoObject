@@ -492,7 +492,7 @@ oo::class create ::AutoObject::bitfield_mix {
             foreach {key val} $args {
                 # If there is an enum and the input is a symbol, use its value
                 if {[info exists defArray($key,enumL)] && \
-                        [lsearch $defArray($key,enumL) $val] != -1} {
+                        ($val in $defArray($key,enumL))} {
                     set val [lsearch $defArray($key,enumL) $val]
                 }
                 set MyValue [expr ($MyValue & ~$defArray($key,mask)) | \

@@ -115,19 +115,18 @@ oo::class create ::autoObject {
             } else {
                 set arrcount 0
             }
-            if {[lsearch [info class instances oo::class ::AutoObject::*] \
-                                                "::AutoObject::$tname"] != -1} {
+            if {"::AutoObject::$tname" in \
+                    [info class instances oo::class ::AutoObject::*]} {
                 # Found as a type declared in the appropriate namespace
                 set tname "::AutoObject::$tname"
-            } elseif {[lsearch [info class instances oo::class] \
-                       "*$tname"] != -1} {
+            } elseif {"*$tname" in [info class instances oo::class]} {
                 # Found something not in the right namespace; we either try it
                 # or die in error and we may as well keep going and try it.
                 log::debug "class list: [info class instances oo::class ::AutoObject::*]"
                 set msg "No $tname in expected namespace.  Found %s and will try it."
                 set tname [lindex [info class instances oo::class] \
                            [lsearch [info class instances oo::class] "*$tname"]]
-                log::warn [format $msg $tname]
+                log::info [format $msg $tname]
             } else {
                 log::error "Unknown type requested: $tname"
                 log::error "List of classes: [info class instances oo::class ::AutoObject::*]"
@@ -256,7 +255,7 @@ oo::class create ::autoObject {
         }
         foreach {key val} $args {
             log::debug "$key: $val"
-            if {[lsearch $NameL $key] == -1} {
+            if {$key ni $NameL} {
                 log::warn "Warning: Setting non-standard field in [info object class \
                         [self object]] [self object]: $key <- $val" true
             }
