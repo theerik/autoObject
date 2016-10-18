@@ -9,4 +9,4 @@
 #
 #==========================================================================
 
-package ifneeded autoObject 0.5 [list source [file join $dir autoObject.tcl]]
+package ifneeded autoObject 0.6 [list source [file join $dir autoObject.tcl]]

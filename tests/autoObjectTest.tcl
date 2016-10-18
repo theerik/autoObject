@@ -9,16 +9,16 @@ puts "autoObject version: [package require autoObject]"
 package require struct::list
 
 set firstDefList {
-    FieldOne    {0   4   uint32_t   1       {}  }
-    FieldTwo    {4   1   uint8_t    150     {}  }
-    FieldThree  {5   3   uint8_t[3] {1 2 3} {}  }
-    FieldFour   {8   4   float_t    3.141590118408203    {}  }
-    FieldFive   {12  2   uint16_t   50000   {}  }
-    FieldSix    {14  1   int8_t     -5      {}  }
-    FieldSeven  {15  4   time_t     "" {"%Y-%m-%d %H:%M:%S"}  }
-    FunkyField  {19  1   myEnum     0       {}  }
-    StrField    {20  15  string_t   "How you like me now, motherf***er?" 15 }
-    StatField   {35  2   myStatus   6482  {}  }
+    FieldOne    {0   4   uint32_t   1       }
+    FieldTwo    {4   1   uint8_t    150     }
+    FieldThree  {5   3   uint8_t[3] {1 2 3} }
+    FieldFour   {8   4   float_t    3.141590118408203    }
+    FieldFive   {12  2   uint16_t   50000   }
+    FieldSix    {14  1   int8_t     -5      }
+    FieldSeven  {15  4   time_t     ""      {"%Y-%m-%d %H:%M:%S"}  }
+    FunkyField  {19  1   myEnum     0       }
+    StrField    {20  15  string_t   "How you like me now, motherf***er?"    15 }
+    StatField   {35  2   myStatus   6482    }
 }
 
 #--------------------------------------------------------------------------

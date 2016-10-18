@@ -54,7 +54,7 @@ exec tclsh "$0" ${1+"$@"}
 #   uint8_t
 #
 oo::class create ::AutoObject::uint8_t {
-    variable MyValue
+    variable MyValue MyWidget
 
     constructor {args} { set MyValue 0 }
     method get {} { return $MyValue }
@@ -87,7 +87,7 @@ oo::class create ::AutoObject::int8_t {
 #   uint16_t
 #
 oo::class create ::AutoObject::uint16_t {
-    variable MyValue
+    variable MyValue MyWidget
 
     constructor {args} { set MyValue 0 }
     method get {} { return $MyValue }
@@ -163,7 +163,7 @@ oo::class create ::AutoObject::int16_bt {
 #   uint32_t
 #
 oo::class create ::AutoObject::uint32_t {
-    variable MyValue
+    variable MyValue MyWidget
 
     constructor {args} { set MyValue 0 }
     method get {} { return $MyValue }
@@ -243,7 +243,7 @@ oo::class create ::AutoObject::int32_bt {
 #   float_t
 #
 oo::class create ::AutoObject::float_t {
-    variable MyValue
+    variable MyValue MyWidget
 
     constructor {args} { set MyValue 0.0 }
     method get {} { return $MyValue }
@@ -319,7 +319,7 @@ oo::class create ::AutoObject::time_t {
         } else {
             set fmtStr $MyFormatStr
         }
-        return [clock format $MyValue -format $fmtStr]
+        tailcall clock format $MyValue -format $fmtStr
     }
 }
 
@@ -334,10 +334,15 @@ oo::class create ::AutoObject::time_t {
 # will fit into that field length.  If the input is shorter, the string will
 # be null terminated and filled with NULLs in the line format.
 oo::class create ::AutoObject::string_t {
-    variable MyValue MyLength
+    variable MyValue 
+    variable MyWidget
+    variable MyLength
 
     constructor {args} {
         if {![string is digit -strict [lindex $args 0]]} {
+            alert "String_t constructor error: \
+                   field length not specified in defining list.\n\
+                   Specify field length in the fifth item of the list."
             error "String_t constructor error: \
                    field length not specified in defining list."
         }
@@ -376,7 +381,7 @@ oo::class create ::AutoObject::string_t {
 # be null terminated and filled with NULLs in the line format.
 oo::class create ::AutoObject::unicode_t {
     superclass ::AutoObject::string_t
-    variable MyValue MyLength
+    variable MyValue MyLength MyWidget
 
     method toList {} {
         binary scan [encoding convertto unicode $MyValue] c* dataL
@@ -400,7 +405,7 @@ oo::class create ::AutoObject::unicode_t {
 # of the length-specific code; the mixin only provides an override for the
 # "set" and "toString" methods.
 #
-# N.B. The enum_TYPE class is a bit of code clevverness that expects to be
+# N.B. The enum_mix class is a bit of code clevverness that expects to be
 # initialized before use.  The base class provides the mechanisms; initialization
 # only provides the lookup table mapping the symbol to the enum value.  
 # Without providing the definition of the enum, it's not very useful.
@@ -416,10 +421,10 @@ oo::class create ::AutoObject::enum_mix {
     method set {newVal} {
         my variable MyValue
         set ns [info object namespace [info object class [self object]]]
-        upvar ${ns}::defArray defArray
-        if {[info exists defArray($newVal)]} {
-            set MyValue $defArray($newVal)
-        } elseif {[info exists defArray(val-$newVal)]} {
+        upvar ${ns}::defArray dA
+        if {[info exists dA($newVal)]} {
+            set MyValue $dA($newVal)
+        } elseif {[info exists dA(val-$newVal)]} {
             set MyValue $newVal
         } else {
             error "Tried to set enum [self] to unknown value $newVal"
@@ -428,8 +433,28 @@ oo::class create ::AutoObject::enum_mix {
     method toString {} {
         my variable MyValue
         set ns [info object namespace [info object class [self object]]]
-        upvar ${ns}::defArray defArray
-        return $defArray(val-$MyValue)
+        upvar ${ns}::defArray dA
+        return $dA(val-$MyValue)
+    }
+    method createWidget {args} {
+        my variable MyWidget
+        # N.B. that the combobox widget method will be called first in the
+        # method chain, and that we only get here by the "next" call.
+        if {[winfo class $MyWidget] ne "TCombobox"} {
+            puts "I ([self]) am a [winfo class $MyWidget]"
+            return
+        }
+        set ns [info object namespace [info object class [self object]]]
+        upvar ${ns}::defArray dA
+        set nL [array names dA "val-*"]
+        foreach n $nL {lappend enumL $dA($n)}
+        $MyWidget configure -values $enumL
+        bind $MyWidget <<ComboboxSelected>> [list [self] widgetUpdate]
+        $MyWidget set [my toString]
+    }
+    method widgetUpdate {} {
+        my variable MyWidget
+        my set [$MyWidget get]
     }
 }
 proc ::AutoObject::setEnumDef {classname defL} {
@@ -450,7 +475,7 @@ proc ::AutoObject::setEnumDef {classname defL} {
 # of the length-specific code; the mixin only provides an override for the
 # "set", "get" and "toString" methods.
 #
-# N.B. The bitfield_TYPE class is a bit of code clevverness that expects to be
+# N.B. The bitfield_mix class is a bit of code clevverness that expects to be
 # initialized before use.  The base class provides the mechanisms; 
 # initialization only provides the lookup table mapping the fields to the bits.
 # Without providing the definition of the enum, it's not very useful.
@@ -466,14 +491,14 @@ oo::class create ::AutoObject::bitfield_mix {
     method get {args} {
         my variable MyValue
         set ns [info object namespace [info object class [self object]]]
-        upvar ${ns}::defArray defArray
+        upvar ${ns}::defArray dA
         if {[llength $args] == 0} {
             return $MyValue
         } else {
             set outL {}
             foreach field $args {
-                set val [expr ($MyValue & $defArray($field,mask) ) \
-                                    >> $defArray($field,shift)]
+                set val [expr ($MyValue & $dA($field,mask) ) \
+                                    >> $dA($field,shift)]
                 lappend outL $val
             }
             return $outL
@@ -482,7 +507,7 @@ oo::class create ::AutoObject::bitfield_mix {
     method set {args} {
         my variable MyValue
         set ns [info object namespace [info object class [self object]]]
-        upvar ${ns}::defArray defArray
+        upvar ${ns}::defArray dA
         set len [llength $args]
         if {$len == 1} {
             # setting entire value
@@ -491,35 +516,35 @@ oo::class create ::AutoObject::bitfield_mix {
             # If setting fields, must be a list of field/value pairs
             foreach {key val} $args {
                 # If there is an enum and the input is a symbol, use its value
-                if {[info exists defArray($key,enumL)] && \
-                        ($val in $defArray($key,enumL))} {
-                    set val [lsearch $defArray($key,enumL) $val]
+                if {[info exists dA($key,enumL)] && \
+                        ($val in $dA($key,enumL))} {
+                    set val [lsearch $dA($key,enumL) $val]
                 }
-                set MyValue [expr ($MyValue & ~$defArray($key,mask)) | \
-                                    (($val << $defArray($key,shift)) & \
-                                    $defArray($key,mask))]
+                set MyValue [expr ($MyValue & ~$dA($key,mask)) | \
+                                    (($val << $dA($key,shift)) & \
+                                    $dA($key,mask))]
             }
         } else {
-            error "Odd number of items in key/value list: $args"
+            error "Odd number of items in key/value list: [llength $args] items in $args"
         }
     }
     method toString {} {
         my variable MyValue
         set ns [info object namespace [info object class [self object]]]
-        upvar ${ns}::defArray defArray
+        upvar ${ns}::defArray dA
         set outS ""
         set newline ""
-        set nameSize [expr [string length [lindex $defArray(nameL) 0]] + 44]
+        set nameSize [expr [string length [lindex $dA(nameL) 0]] + 44]
         set outS [format "%s  Decoded to:\n" [next]]
-        foreach name $defArray(nameL) {
-            set val [expr ($MyValue & $defArray($name,mask)) \
-                                    >> $defArray($name,shift)]
+        foreach name $dA(nameL) {
+            set val [expr ($MyValue & $dA($name,mask)) \
+                                    >> $dA($name,shift)]
             # If there's an enum, print the symbol
-            if {[info exists defArray($name,enumL)] && \
-                    $val < [llength $defArray($name,enumL)]} {
-                set valS [lindex $defArray($name,enumL) $val]
+            if {[info exists dA($name,enumL)] && \
+                    $val < [llength $dA($name,enumL)]} {
+                set valS [lindex $dA($name,enumL) $val]
             } else {
-                set size $defArray($name,size)
+                set size $dA($name,size)
                 set valS [format "b'%0${size}b" $val]
             }
             append outS [format "%${nameSize}s - %s\n" $name $valS]
@@ -527,6 +552,29 @@ oo::class create ::AutoObject::bitfield_mix {
         # trim to display multiline output properly in autoObject output
         set outS [string trimright $outS "\n"]
         return $outS
+    }
+    method createWidget {args} {
+        my variable MyWidget
+        # N.B. that the base widget method will be called first in the
+        # method chain, and that we only get here by the "next" call.
+return
+        set ns [info object namespace [info object class [self object]]]
+        upvar ${ns}::defArray dA
+        # Get rid of the old widget, replacing by the collection of
+        # per-bitfield widgets
+        set wname $MyWidget
+        destroy $MyWidget 
+
+
+        set nL [array names dA "val-*"]
+        foreach n $nL {lappend enumL $dA($n)}
+        $MyWidget configure -values $enumL
+        bind $MyWidget <<ComboboxSelected>> [list [self] widgetUpdate]
+        $MyWidget set [my toString]
+    }
+    method widgetUpdate {} {
+        my variable MyWidget
+        my set [$MyWidget get]
     }
 }
 proc ::AutoObject::setBitfieldDef {classname defL} {

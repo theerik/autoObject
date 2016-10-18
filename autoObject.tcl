@@ -28,11 +28,12 @@ package require logger
 
 if {![namespace exists ::AutoObject] } {
     namespace eval ::AutoObject {
-        variable version 0.5
+        variable version 0.6
         logger::init ::autoObject
         logger::import -all -namespace ::autoObject::log ::autoObject
         ::autoObject::log::setlevel warn
     }
+    source [file join [file dirname [info script]] autoObjectWidgets.tcl]
     source [file join [file dirname [info script]] autoObjectData.tcl]
 
 #--------------------------------------------------------------------------
@@ -57,7 +58,8 @@ oo::class create ::autoObject {
     #
     # The constructor takes as input a list defining the object to be created.
     # The defining list has the form of key/value pairs, with field names
-    # as keys paired with a nested list of 5 elements:
+    # as keys paired with a nested list of up to 6 elements, the first 3 
+    # of which are mandatory:
     #   {   field_offset    # must start at 0, incr by field_size, leave no gaps
     #       field_size      # max size of field in bytes in serialized stream
     #       field_type      # name of the data type.  Must support methods used
@@ -66,7 +68,12 @@ oo::class create ::autoObject {
     #       field_data      # Passed to constructor when creating the object of
     #                       # type <field_type>, not used or examined by
     #                       # autoObject.  Can be empty {}.
+    #       widget_name     # name of an autoWidget class to use to display
+    #                       # the data in GUIs.  Can be empty, in which case
+    #                       # the autoWidget "autoEntry" will be used.
     #   }
+    # If fewer than 6 elements are provided, the remainder will be filled
+    # with default values as noted, usually the empty list {}.
     #
     # There is one special valid key name, "variable_length_object", whose
     # value is a single number defining the minimum size of the object.
@@ -135,8 +142,39 @@ oo::class create ::autoObject {
             }
             set FieldInfo($field,tname) $tname
             set FieldInfo($field,arrcnt) $arrcount
-            set initData [lindex $fieldList 3]
-            set typeData [lindex $fieldList 4]
+            if {[llength $fieldList] > 3} {
+                set initData [lindex $fieldList 3]
+            } else {
+                set initData {}
+            }
+            if {[llength $fieldList] > 4} {
+                set typeData [lindex $fieldList 4]
+            } else {
+                set typeData {}
+            }
+            if {([llength $fieldList] > 5) && ([lindex $fieldList 5] ne {})} {
+                set wname [lindex $fieldList 5]
+                if {"::AutoObject::$wname" in \
+                            [info class instances oo::class ::AutoObject::*]} {
+                    # Found as a type declared in the appropriate namespace
+                    set widgetName "::AutoObject::$wname"
+                } elseif {[lsearch [info class instances oo::class] "*$wname"] != -1} {
+                    # Found something not in the right namespace; we either try it
+                    # or die in error and we may as well keep going and try it.
+                    log::debug "class list: [info class instances oo::class ::AutoObject::*]"
+                    set msg "No $wname in expected namespace.  Found %s and will try it."
+                    set widgetName [lindex [info class instances oo::class] \
+                               [lsearch [info class instances oo::class] "*$wname"]]
+                    log::info [format $msg $widgetName]
+                } else {
+                    log::error "Unknown type requested: $wname"
+                    log::error "List of autoObject classes: [info class instances oo::class ::AutoObject::*]"
+                    log::error "List of classes: [info class instances oo::class]"
+                    error "Unknown type requested: $wname"
+                }
+            } else {
+                set widgetName ::AutoObject::autoEntry
+            }
             if {$isarray} {
                 # validate size is an integral number of bytes per entry
                 set bytesPerObj [expr {int($FieldInfo($field,size) / $arrcount)}]
@@ -157,6 +195,8 @@ oo::class create ::autoObject {
                                $::errorInfo"
                     }
                     $obj set [lindex $initData $idx]
+                    # Mix in the GUI class
+                    oo::objdefine $obj [list mixin $widgetName]
                     lappend DataArray($field) $obj
                 }
                 # Forward the field name as a method name to a special
@@ -170,6 +210,8 @@ oo::class create ::autoObject {
                            $tname for field $field: $::errorInfo"
                 }
                 $DataArray($field) set $initData
+                # Mix in the GUI class
+                oo::objdefine $DataArray($field) [list mixin $widgetName]
                 # Forward the field name as a method name to the object that
                 # the field is composed of.
                 oo::objdefine [self] forward $field $DataArray($field) 
@@ -311,11 +353,62 @@ oo::class create ::autoObject {
     # autoObject.follow
     #
     # Returns a fully qualified path to the value of the data object;
-    # normally used by GUIs to use a field as a textvariable.
+    # normally used by GUIs to use a field as a textvariable.  If the data
+    # is a list of object, returns a list of FQPs, one per object.
     method follow {key} {
-        # @@@ TODO %%% This needs to be enhanced to deal with lists of
-        # objects.  
-        return [info object namespace $DataArray($key)]::MyValue
+        if {$FieldInfo($key,arrcnt) == 0} {
+            return [info object namespace $DataArray($key)]::MyValue
+        } else {
+            set tempL {}
+            foreach obj $DataArray($key) {
+                lappend tempL [info object namespace $obj]::MyValue]
+            }
+            return $tempL
+        }
+    }
+
+    #--------------------------------------------------------------------------
+    # autoObject.createWidget
+    #
+    # Returns a Tk name of a frame that encloses a grid of name/value paired
+    # widgets.  Names are labels; values are whatever widget the value object
+    # has mixed in that responds to the createWidget method call.  
+    method createWidget {wname} {
+        my variable MyWidget
+        # Create encapsulating frame
+        ttk::frame $wname
+        set row 1
+        foreach key $NameL {
+            set winName [string tolower $key]
+            if {[llength $DataArray($key)] == 1} {
+                grid [ttk::label $wname.l$winName -text $key] -column 0 \
+                        -row $row -sticky nsew
+                set MyWidget [$DataArray($key) createWidget $wname.$winName]
+                if {$MyWidget eq ""} { continue }
+                grid $MyWidget -column 1 -row $row -sticky nsew
+                incr row
+                set FieldInfo($key,widget) $MyWidget
+            } else {
+                grid [ttk::label $wname.l$winName -text $key] -column 0 \
+                        -row $row -sticky nsew
+                set widL {}
+                foreach obj $DataArray($key) {
+                    set wnum [llength $widL]
+                    set MyWidget [$obj createWidget $wname.$winName$wnum]
+                    # Special support for reserved fields - if no widget
+                    # is returned, don't try to grid it or add rows.
+                    if {$MyWidget eq ""} { continue }
+
+                    lappend widL $MyWidget
+                    grid $MyWidget -column 1 -row $row -padx 4 -sticky nsew
+                    incr row
+                }
+                set FieldInfo($key,widget) $widL
+            }
+        }
+        grid columnconfigure $wname 0 -weight 1
+        grid columnconfigure $wname 1 -weight 4
+        return $wname
     }
 
     #--------------------------------------------------------------------------
@@ -463,6 +556,7 @@ oo::class create ::autoObject {
         foreach name $keysL {
             set size $FieldInfo($name,size)
             set offset $FieldInfo($name,offset)
+            log::debug "$name: $size bytes @ $offset bytes"
 
             # Set value with string from field objects
             if {[llength $DataArray($name)] > 1} {
@@ -477,6 +571,8 @@ oo::class create ::autoObject {
                     append outStr "[$obj toString] "
                 }
                 set outStr [string trimright $outStr " "]
+            } elseif {[llength $DataArray($name)] == 0}  {
+                set outstr "No Data"
             } else {
                 set outStr [$DataArray($name) toString]
             }
