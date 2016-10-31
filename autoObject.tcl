@@ -243,7 +243,7 @@ oo::class create ::autoObject {
                 }
             }
         } elseif {[llength $args] == 1} {
-            if {[info exists DataArray($args)]} {
+            if {$args in $NameL} {
                 if {[llength $DataArray($args)] > 1} {
                     set tempL {}
                     foreach obj $DataArray($args) {
@@ -253,6 +253,8 @@ oo::class create ::autoObject {
                 } else {
                     return [$DataArray($args) get]
                 }
+            } elseif {[info exists DataArray($args)]} {
+                return $DataArray($args)
             } else {
                 my variable $args
                 if {[info exists $args]} {
@@ -265,7 +267,7 @@ oo::class create ::autoObject {
             }
         } else {
             foreach {key} $args {
-                if {[info exists DataArray($key)]} {
+                if {$key in $NameL} {
                     if {[llength $DataArray($key)] > 1} {
                         set tempL {}
                         foreach obj $DataArray($key) {
@@ -275,6 +277,8 @@ oo::class create ::autoObject {
                     } else {
                         lappend outL [$DataArray($key) get]
                     }
+                } elseif {[info exists DataArray($key)]} {
+                    lappend outL $DataArray($key)
                 } else {
                     log::error "Requesting non-existant field in [info object \
                                 class [self object]] [self object]: \"$key\" \
@@ -299,14 +303,15 @@ oo::class create ::autoObject {
         foreach {key val} $args {
             log::debug "$key: $val"
             if {$key ni $NameL} {
-                log::warn "Warning: Setting non-standard field in [info object class \
+                log::warn "Warning: trying to set non-standard field in [info object class \
                         [self object]] [self object]: $key <- $val" true
+                set $DataArray($key) $val
             }
             if {$FieldInfo($key,arrcnt) != 0} {
                 if {$Variable_size == 0} {
                     # Fixed length object
                     if {([llength $DataArray($key)] != [llength $val]) } {
-                        set errmsg "incorrect number of items to set: \
+                        set errmsg "incorrect number of items to set in $key: \
                                     using [llength $val] arguments to set\
                                     [llength $DataArray($key)] objects."
                         log::error $errmsg
@@ -321,10 +326,11 @@ oo::class create ::autoObject {
                     set offset $FieldInfo($key,offset)
                     if {($Variable_size > ($offset + $inlen)) ||
                             ($FieldInfo($key,arrcnt) < $inlen)} {
-                        set errmsg "Incorrect number of items to set: \
+                        set errmsg "Incorrect number of items to set in $key: \
                                     using $inlen arguments to set\
                                     up to [llength $tempL] objects."
                         log::error $errmsg
+                        log::error "Variable_size: $Variable_size, arrcnt: $FieldInfo($key,arrcnt)"
                         error $errmsg
                     } else {
                         # Set the objects to the new values.  If we have
@@ -378,18 +384,30 @@ oo::class create ::autoObject {
         # Create encapsulating frame
         ttk::frame $wname
         set row 1
+        # @@@ TODO %%% llength NameL is not really the right number for
+        # number of rows - doesn't take into account dropped reserved
+        # fields or arrays/bitfields that take multiple rows.  Figure it
+        # out later.
+        if {[llength $NameL] > 20} {
+            set splitRow [expr {[llength $NameL] / 2}]
+        } else {
+            # Even if we think we don't need to split, split at 40 to
+            # keep at the size of the monitor :-P
+            set splitRow 40
+        }
+        set colNum 0
         foreach key $NameL {
             set winName [string tolower $key]
             if {[llength $DataArray($key)] == 1} {
-                grid [ttk::label $wname.l$winName -text $key] -column 0 \
+                grid [ttk::label $wname.l$winName -text $key] -column $colNum \
                         -row $row -sticky nsew
                 set MyWidget [$DataArray($key) createWidget $wname.$winName]
                 if {$MyWidget eq ""} { continue }
-                grid $MyWidget -column 1 -row $row -sticky nsew
+                grid $MyWidget -column [expr $colNum + 1] -row $row -sticky nsew
                 incr row
                 set FieldInfo($key,widget) $MyWidget
             } else {
-                grid [ttk::label $wname.l$winName -text $key] -column 0 \
+                grid [ttk::label $wname.l$winName -text $key] -column $colNum \
                         -row $row -sticky nsew
                 set widL {}
                 foreach obj $DataArray($key) {
@@ -400,10 +418,14 @@ oo::class create ::autoObject {
                     if {$MyWidget eq ""} { continue }
 
                     lappend widL $MyWidget
-                    grid $MyWidget -column 1 -row $row -padx 4 -sticky nsew
+                    grid $MyWidget -column [expr $colNum + 1] -row $row -padx 4 -sticky nsew
                     incr row
                 }
                 set FieldInfo($key,widget) $widL
+            }
+            if {$row > $splitRow} {
+                set row 1
+                incr colNum 2
             }
         }
         grid columnconfigure $wname 0 -weight 1
@@ -425,16 +447,15 @@ oo::class create ::autoObject {
                 # in all cases, too large is an error
                 log::error "Input for [info object class [self object]] is too\
                         large!  Length: $dl; should be <= $BlockSize."
-                log::debug "Data is: $dataL"
             } elseif { $Variable_size == 0 } {
                 # block is smaller and is not variable-length
                 log::error "Input for [info object class [self object]] has an\
                         incorrect length: $dl; should be $BlockSize."
-                log::debug "Data is: $dataL"
             } else {
                 # Variable is allowed to be smaller but not larger
                 log::info "Input for [info object class [self object]] is size\
-                        $dl bytes (max allowed is $BlockSize)."
+                        $dl bytes (max allowed is $BlockSize, min is\
+                        $Variable_size)."
                 if {$dl == 0} {
                     # Special case - clear out the existing data, because we
                     # won't loop past the end of the 0 byte input block.
@@ -444,6 +465,7 @@ oo::class create ::autoObject {
                     return
                 }
             }
+            log::debug "Data is: $dataL"
         }
 
         #Input is acceptable.  Process it in field order.
@@ -552,7 +574,7 @@ oo::class create ::autoObject {
         if {[llength $keysL] == 0} {
             set keysL $NameL
         }
-
+#log::setlevel debug
         foreach name $keysL {
             set size $FieldInfo($name,size)
             set offset $FieldInfo($name,offset)
@@ -602,10 +624,7 @@ oo::class create ::autoObject {
     #
     # From wire format or COM interface.  Converts from binary and calls fromList.
     method fromByteArray {byteArray} {
-        binary scan $byteArray "c*" byteList
-        foreach b $byteList {
-            lappend posL [expr {$b & 0xff}]
-        }
+        binary scan $byteArray "cu*" byteList
         my fromList $posL
     }
 

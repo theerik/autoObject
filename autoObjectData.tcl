@@ -61,7 +61,10 @@ oo::class create ::AutoObject::uint8_t {
     method set {newVal} { set MyValue [expr {$newVal % 256}]}
     method toString {} { return [format "%-3d" $MyValue] }
     method toList {} { return [format "%d" [expr {$MyValue % 256}]] }
-    method fromList {inVal} { set MyValue [expr {$inVal % 256}] }
+    method fromList {inList} {
+        set MyValue [expr {[lindex $inList 0] % 256}]
+        return [lrange $inList 1 end]
+    }
 }
 
 #--------------------------------------------------------------------------
@@ -76,10 +79,11 @@ oo::class create ::AutoObject::int8_t {
     }
     method fromList {inList} {
         my variable MyValue
-        next $inList
+        set outL [next $inList]
         if {$MyValue & 0x80} {
             incr MyValue -256
         }
+        return $outL
     }
 }
 
@@ -101,6 +105,7 @@ oo::class create ::AutoObject::uint16_t {
     method fromList {inList} {
         set MyValue [expr {[format "0x%02x%02x" {*}[lreverse \
                                                     [lrange $inList 0 1]]]}]
+        return [lrange $inList 2 end]
     }
 }
 
@@ -118,6 +123,7 @@ oo::class create ::AutoObject::uint16_bt {
     }
     method fromList {inList} {
         set MyValue [expr {[format "0x%02x%02x" {*}[lrange $inList 0 1]]}]
+        return [lrange $inList 2 end]
     }
 }
 
@@ -133,10 +139,11 @@ oo::class create ::AutoObject::int16_t {
     }
     method fromList {inList} {
         my variable MyValue
-        next $inList
+        set outL [next $inList]
         if {$MyValue & 0x8000} {
             incr MyValue -65536
         }
+        return $outL
     }
 }
 
@@ -152,10 +159,11 @@ oo::class create ::AutoObject::int16_bt {
     }
     method fromList {inList} {
         my variable MyValue
-        next $inList
+        set outL [next $inList]
         if {$MyValue & 0x8000} {
             incr MyValue -65536
         }
+        return $outL
     }
 }
 
@@ -179,6 +187,7 @@ oo::class create ::AutoObject::uint32_t {
     method fromList {inList} {
         set MyValue [expr {[format "0x%02x%02x%02x%02x" {*}[lreverse \
                                                     [lrange $inList 0 3]]]}]
+        return [lrange $inList 4 end]
     }
 }
 
@@ -198,6 +207,7 @@ oo::class create ::AutoObject::uint32_bt {
     }
     method fromList {inList} {
         set MyValue [expr {[format "0x%02x%02x%02x%02x" {*}[lrange $inList 0 3]]}]
+        return [lrange $inList 4 end]
     }
 }
 
@@ -217,6 +227,7 @@ oo::class create ::AutoObject::int32_t {
         if {$MyValue & 0x80000000} {
             incr MyValue -4294967296
         }
+        return [lrange $inList 4 end]
     }
 }
 
@@ -236,6 +247,7 @@ oo::class create ::AutoObject::int32_bt {
         if {$MyValue & 0x80000000} {
             incr MyValue -4294967296
         }
+        return [lrange $inList 4 end]
     }
 }
 
@@ -268,8 +280,9 @@ oo::class create ::AutoObject::float_t {
     method fromList {inList} {
         # Convert using the native float format.  N.B. this works only
         # when the target & x86 use the same float format.
-        binary scan [binary format c4 $inList] f value
+        binary scan [binary format c4 [lrange $inList 0 3]] f value
         set MyValue $value
+        return [lrange $inList 4 end]
     }
 }
 
@@ -353,7 +366,7 @@ oo::class create ::AutoObject::string_t {
     method set {newVal} {
         set MyValue [string range $newVal 0 [expr {$MyLength - 1}] ]
     }
-    method toString {} { return $MyValue }
+    method toString {} { return "\"$MyValue\"" }
     method toList {} {
         binary scan $MyValue c* dataL
         if {[llength $dataL] < $MyLength} {
@@ -362,7 +375,13 @@ oo::class create ::AutoObject::string_t {
         return $dataL
     }
     method fromList {inList} {
-        set MyValue [string trimright [binary format c* $inList] '\0']
+        if {$MyLength < [llength $inList]} {
+            set dataL [lrange $inList 0 $MyLength-1]
+        } else {
+            set dataL $inList
+        }
+        set MyValue [string trimright [binary format c* $dataL] '\0']
+        return [lrange $inList $MyLength end]
     }
 }
 
@@ -391,8 +410,14 @@ oo::class create ::AutoObject::unicode_t {
         return $dataL
     }
     method fromList {inList} {
+        if {$MyLength < ([llength $inList] / 2)} {
+            set dataL [lrange $inList 0 [expr {($MyLength * 2) - 1}]]
+        } else {
+            set dataL $inList
+        }
         set MyValue [string trimright [encoding convertfrom unicode \
-                                       [binary format c* $inList]] '\0']
+                                       [binary format c* $dataL]] '\0']
+        return [lrange $inList [expr {$MyLength * 2}] end]
     }
 }
 
@@ -424,25 +449,33 @@ oo::class create ::AutoObject::enum_mix {
         upvar ${ns}::defArray dA
         if {[info exists dA($newVal)]} {
             set MyValue $dA($newVal)
-        } elseif {[info exists dA(val-$newVal)]} {
-            set MyValue $newVal
         } else {
-            error "Tried to set enum [self] to unknown value $newVal"
+            # Sometimes input comes in 0x## hex format. Expr it to decimal.
+            catch {set newVal [expr $newVal]}
+            if {[info exists dA(val-$newVal)]} {
+                set MyValue $newVal
+            } else {
+                alert "Tried to set enum [self] to unknown value $newVal"
+                set MyValue $newVal
+            }
         }
     }
     method toString {} {
         my variable MyValue
         set ns [info object namespace [info object class [self object]]]
         upvar ${ns}::defArray dA
-        return $dA(val-$MyValue)
+        if {[info exists dA(val-$MyValue)]} {
+            return $dA(val-$MyValue)
+        } else {
+            return $MyValue
+        }
     }
     method createWidget {args} {
         my variable MyWidget
-        # N.B. that the combobox widget method will be called first in the
+        # N.B. that the autoCombobox widget method will be called first in the
         # method chain, and that we only get here by the "next" call.
         if {[winfo class $MyWidget] ne "TCombobox"} {
-            puts "I ([self]) am a [winfo class $MyWidget]"
-            return
+            error "I ([self]) am a [winfo class $MyWidget] - expected to be TCombobox."
         }
         set ns [info object namespace [info object class [self object]]]
         upvar ${ns}::defArray dA

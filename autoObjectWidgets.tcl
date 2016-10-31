@@ -77,7 +77,8 @@ oo::class create ::AutoObject::autoCombobox {
         my variable MyWidget
         set ns [info object namespace [info object class [self object]]]
         upvar ${ns}::defArray defArray
-        set MyWidget [ttk::combobox $wname -textvariable MyValue {*}$args]
+        set MyWidget [ttk::combobox $wname {*}$args]
+        $wname set $MyValue
         oo::objdefine [self] forward widget $MyWidget
         if {[self next] ne {}} {next {*}$args}
         return $MyWidget
@@ -99,7 +100,7 @@ oo::class create ::AutoObject::autoLabel {
     method createWidget {wname args} {
         my variable MyValue
         my variable MyWidget
-        set MyWidget [ttk::label $wname -text [set [self namespace]::MyValue] {*}$args]
+        set MyWidget [ttk::label $wname -textvariable [self namespace]::MyValue {*}$args]
         oo::objdefine [self] forward widget $MyWidget
         if {[self next] ne {}} {next {*}$args}
         return $MyWidget
