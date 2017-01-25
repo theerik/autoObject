@@ -328,7 +328,7 @@ oo::class create ::autoObject {
                             ($FieldInfo($key,arrcnt) < $inlen)} {
                         set errmsg "Incorrect number of items to set in $key: \
                                     using $inlen arguments to set\
-                                    up to [llength $tempL] objects."
+                                    up to [llength $DataArray($key)] objects."
                         log::error $errmsg
                         log::error "Variable_size: $Variable_size, arrcnt: $FieldInfo($key,arrcnt)"
                         error $errmsg
@@ -440,6 +440,7 @@ oo::class create ::autoObject {
     # Accepts the byte list, parses it as defined in the associated defining
     # array, and stores it in the object's data array.
     method fromList {dataL} {
+#log::setlevel debug
         set dl [llength $dataL]
         # Check that input is correct size for object
         if {$BlockSize != [llength $dataL]} {
@@ -472,7 +473,7 @@ oo::class create ::autoObject {
         foreach name $NameL {
             set offset $FieldInfo($name,offset)
             set size $FieldInfo($name,size)
-            if {$offset > $dl} {
+            if {$offset >= $dl} {
                 # Once we're past the end of the list, stop processing.
                 break
             }
@@ -511,6 +512,7 @@ oo::class create ::autoObject {
                 }
             }
         }
+#log::setlevel warn
         set Initialized true
     }
 
@@ -527,7 +529,7 @@ oo::class create ::autoObject {
             log::debug "Converting $name..."
             # List should have been the right size coming in...
             set offset $FieldInfo($name,offset)
-            if {[llength $outL] != $offset} {
+            if {[llength $outL] != $offset && $Variable_size == 0} {
                 error "Data list incorrect size starting $name.  Expected\
                        $offset bytes, got [llength $outL] ($outL)."
             }
@@ -542,8 +544,9 @@ oo::class create ::autoObject {
             # Field object should generate correct list length.
             set size $FieldInfo($name,size)
             if {[llength $dataL] != $size && $Variable_size == 0} {
-                error "Data object $name generated wrong size list. \
+                set errMsg "Data object $name generated wrong size list. \
                        Expected $size bytes, got [llength $dataL] ($dataL)."
+                error $errMsg
             }
             lappend outL {*}$dataL
             unset dataL

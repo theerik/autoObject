@@ -475,7 +475,8 @@ oo::class create ::AutoObject::enum_mix {
         # N.B. that the autoCombobox widget method will be called first in the
         # method chain, and that we only get here by the "next" call.
         if {[winfo class $MyWidget] ne "TCombobox"} {
-            error "I ([self]) am a [winfo class $MyWidget] - expected to be TCombobox."
+            puts "I ([self]) am a [winfo class $MyWidget]"
+            return
         }
         set ns [info object namespace [info object class [self object]]]
         upvar ${ns}::defArray dA
