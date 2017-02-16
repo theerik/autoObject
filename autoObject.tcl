@@ -221,6 +221,7 @@ oo::class create ::autoObject {
         set BlockSize $currOffset
         set Initialized false
     }
+    method isInitialized {} {return $Initialized}
 
     #--------------------------------------------------------------------------
     # autoObject.get
@@ -389,7 +390,7 @@ oo::class create ::autoObject {
         # fields or arrays/bitfields that take multiple rows.  Figure it
         # out later.
         if {[llength $NameL] > 20} {
-            set splitRow [expr {[llength $NameL] / 2}]
+            set splitRow [expr {([llength $NameL] + 1)/ 2}]
         } else {
             # Even if we think we don't need to split, split at 40 to
             # keep at the size of the monitor :-P
