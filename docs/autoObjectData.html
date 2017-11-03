@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>autoObjectData.tcl</title>
+  <link rel="stylesheet" href="pycco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <div class='section'>
+    <div class='docs'><h1>autoObjectData.tcl</h1></div>
+  </div>
+  <div class='clearall'>
+  <div class='section' id='section-0'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-0'>#</a>
+      </div>
+      <hr />
+<p>FILENAME:    autoObjectData.tcl</p>
+<p>AUTHOR:      theerik@github</p>
+<p>DESCRIPTION:  AutoObject is a base class used to create auto-assembling
+              objects using a descriptor array.  AutoObjectData defines
+              a base class and many common derived classes used as field
+              types within an AutoObject.  Common types defined include:</p>
+<pre><code>              * uint8_t
+              * uint16_t
+              * uint32_t
+              * uint16_bt (Big-endian)
+              * uint32_bt (Big-endian)
+              * int8_t
+              * int16_t
+              * int32_t
+              * int16_bt  (Big-endian)
+              * int32_bt  (Big-endian)
+              * float_t
+              * time_t    (Unix system time)
+              * string_t
+</code></pre>
+<h6></h6>
+<p>Copyright 2015-17, Erik N. Johnson</p>
+<p>This package documentation is auto-generated with
+Pycco: <a href="https://pycco-docs.github.io/pycco/">https://pycco-docs.github.io/pycco/</a></p>
+<p>Use "pycco filename" to re-generate HTML documentation in ./docs .</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-1'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-1'>#</a>
+      </div>
+      <hr />
+<h2>autoData classes</h2>
+<p>All types used as AutoObject fields <em>must</em> support the following
+canonical methods:</p>
+<ul>
+<li>get</li>
+<li>set</li>
+<li>toList</li>
+<li>fromList</li>
+<li>toString</li>
+</ul>
+<p>Optional methods used primarily for GUI building are:</p>
+<ul>
+<li>follow</li>
+<li>createWidget</li>
+</ul>
+<p>If a subclassing application needs additional methods, the base classes
+can be extended by defining additional methods either on the class or on
+the objects.</p>
+<p>All new classes should be declared in the ::AutoObject:: namespace, as
+below. To allow the "follow" method of the base autoObject containing class
+to work correctly, the actual data value should be held in the canonical
+name "MyValue".  If the data value is not held in MyValue, the follow method
+should be redefined for the containing class to behave correctly, or
+only invoked on the field object (harder to ensure).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-2'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-2'>#</a>
+      </div>
+      <hr />
+<h3>uint8_t</h3>
+<p>The most basic field type, a single byte of unsigned data.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::uint8_t <span class="k">{</span>
+    <span class="k">variable</span> MyValue MyWidget
+
+    <span class="nv">constructor</span> <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span> <span class="k">set</span> MyValue <span class="mi">0</span> <span class="k">}</span>
+    <span class="nv">method</span> get <span class="k">{}</span> <span class="k">{</span> <span class="k">return</span> <span class="nv">$MyValue</span> <span class="k">}</span>
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">newVal</span><span class="k">}</span> <span class="k">{</span> <span class="k">set</span> MyValue <span class="k">[expr</span> <span class="k">{</span><span class="nv">$newVal</span> <span class="o">%</span> <span class="nv">256</span><span class="k">}]}</span>
+    <span class="nv">method</span> toString <span class="k">{}</span> <span class="k">{</span> <span class="k">return</span> <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%-3d&quot;</span> <span class="nv">$MyValue</span><span class="k">]</span> <span class="k">}</span>
+    <span class="nv">method</span> toList <span class="k">{}</span> <span class="k">{</span> <span class="k">return</span> <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{</span><span class="nv">$MyValue</span> <span class="o">%</span> <span class="nv">256</span><span class="k">}]]</span> <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">set</span> MyValue <span class="k">[expr</span> <span class="k">{[</span><span class="nb">lindex</span> <span class="nv">$inList</span> <span class="mi">0</span><span class="k">]</span> <span class="o">%</span> <span class="nv">256</span><span class="k">}]</span>
+        <span class="k">return</span> <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">1</span> end<span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-3'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-3'>#</a>
+      </div>
+      <hr />
+<h3>int8_t</h3>
+<p>A single byte of signed data.
+Since list data is effectively unsigned, perform the final 2's complement
+on the MSbit, and don't force the <em>set</em> method to an unsigned value.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::int8_t <span class="k">{</span>
+    <span class="nv">superclass</span> <span class="o">::</span>AutoObject::uint8_t
+
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">newVal</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">set</span> MyValue <span class="nv">$newVal</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">set</span> outL <span class="k">[</span><span class="nv">next</span> <span class="nv">$inList</span><span class="k">]</span>
+        <span class="k">if</span> <span class="k">{</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x80</span><span class="k">}</span> <span class="k">{</span>
+            <span class="nb">incr</span> MyValue <span class="o">-</span><span class="mi">256</span>
+        <span class="k">}</span>
+        <span class="k">return</span> <span class="nv">$outL</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-4'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-4'>#</a>
+      </div>
+      <hr />
+<h3>uint16_t</h3>
+<p>Two bytes of data, where the byte list is interpreted as a single unsigned
+number in little-endian format.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::uint16_t <span class="k">{</span>
+    <span class="k">variable</span> MyValue MyWidget
+
+    <span class="nv">constructor</span> <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span> <span class="k">set</span> MyValue <span class="mi">0</span> <span class="k">}</span>
+    <span class="nv">method</span> get <span class="k">{}</span> <span class="k">{</span> <span class="k">return</span> <span class="nv">$MyValue</span> <span class="k">}</span>
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">newVal</span><span class="k">}</span> <span class="k">{</span> <span class="k">set</span> MyValue <span class="k">[expr</span> <span class="k">{</span><span class="nv">$newVal</span> <span class="o">%</span> <span class="nv">65536</span><span class="k">}]</span> <span class="k">}</span>
+    <span class="nv">method</span> toString <span class="k">{}</span> <span class="k">{</span> <span class="k">return</span> <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%-5d&quot;</span> <span class="nv">$MyValue</span><span class="k">]</span> <span class="k">}</span>
+    <span class="nv">method</span> toList <span class="k">{}</span> <span class="k">{</span>
+        <span class="k">set</span> outL <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x00FF</span><span class="k">}]]</span>
+        <span class="nb">lappend</span> outL <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{(</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0xFF00</span><span class="k">)</span> <span class="o">&gt;&gt;</span> <span class="nv">8</span><span class="k">}]]</span>
+        <span class="k">return</span> <span class="nv">$outL</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">set</span> MyValue <span class="k">[expr</span> <span class="k">{[</span><span class="nb">format</span> <span class="s2">&quot;0x%02x%02x&quot;</span> <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">lreverse</span> <span class="err">\</span>
+                                                    <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">0</span> <span class="mi">1</span><span class="k">]]]}]</span>
+        <span class="k">return</span> <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">2</span> end<span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-5'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-5'>#</a>
+      </div>
+      <hr />
+<h3>uint16_bt</h3>
+<p>Same as <em>uint16_t</em> except big-endian in byte list format.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::uint16_bt <span class="k">{</span>
+    <span class="nv">superclass</span> <span class="o">::</span>AutoObject::uint16_t
+
+    <span class="nv">method</span> toList <span class="k">{}</span> <span class="k">{</span>
+        <span class="k">set</span> outL <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{(</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0xFF00</span><span class="k">)</span> <span class="o">&gt;&gt;</span> <span class="nv">8</span><span class="k">}]]</span>
+        <span class="nb">lappend</span> outL <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x00FF</span><span class="k">}]]</span>
+        <span class="k">return</span> <span class="nv">$outL</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">set</span> MyValue <span class="k">[expr</span> <span class="k">{[</span><span class="nb">format</span> <span class="s2">&quot;0x%02x%02x&quot;</span> <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">0</span> <span class="mi">1</span><span class="k">]]}]</span>
+        <span class="k">return</span> <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">2</span> end<span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-6'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-6'>#</a>
+      </div>
+      <hr />
+<h3>int16_t</h3>
+<p>Same as <em>uint16_t</em> except the value is interpreted as signed.
+Since list data is effectively unsigned, perform the final 2's complement
+on the MSbit, and don't force the <em>set</em> method to an unsigned value.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::int16_t <span class="k">{</span>
+    <span class="nv">superclass</span> <span class="o">::</span>AutoObject::uint16_t
+
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">newVal</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">set</span> MyValue <span class="nv">$newVal</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">set</span> outL <span class="k">[</span><span class="nv">next</span> <span class="nv">$inList</span><span class="k">]</span>
+        <span class="k">if</span> <span class="k">{</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x8000</span><span class="k">}</span> <span class="k">{</span>
+            <span class="nb">incr</span> MyValue <span class="o">-</span><span class="mi">65536</span>
+        <span class="k">}</span>
+        <span class="k">return</span> <span class="nv">$outL</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-7'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-7'>#</a>
+      </div>
+      <hr />
+<h3>int16_bt</h3>
+<p>Same as <em>uint16_t</em> except the list is interpreted as big-endian and the
+value is interpreted as signed.
+Since list data is effectively unsigned, perform the final 2's complement
+on the MSbit, and don't force the <em>set</em> method to an unsigned value.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::int16_bt <span class="k">{</span>
+    <span class="nv">superclass</span> <span class="o">::</span>AutoObject::uint16_bt
+
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">newVal</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">set</span> MyValue <span class="nv">$newVal</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">set</span> outL <span class="k">[</span><span class="nv">next</span> <span class="nv">$inList</span><span class="k">]</span>
+        <span class="k">if</span> <span class="k">{</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x8000</span><span class="k">}</span> <span class="k">{</span>
+            <span class="nb">incr</span> MyValue <span class="o">-</span><span class="mi">65536</span>
+        <span class="k">}</span>
+        <span class="k">return</span> <span class="nv">$outL</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-8'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-8'>#</a>
+      </div>
+      <hr />
+<h3>uint32_t</h3>
+<p>Four bytes of data, where the byte list is interpreted as a single unsigned
+number in little-endian format.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::uint32_t <span class="k">{</span>
+    <span class="k">variable</span> MyValue MyWidget
+
+    <span class="nv">constructor</span> <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span> <span class="k">set</span> MyValue <span class="mi">0</span> <span class="k">}</span>
+    <span class="nv">method</span> get <span class="k">{}</span> <span class="k">{</span> <span class="k">return</span> <span class="nv">$MyValue</span> <span class="k">}</span>
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">newVal</span><span class="k">}</span> <span class="k">{</span> <span class="k">set</span> MyValue <span class="k">[expr</span> <span class="k">{</span><span class="nv">$newVal</span> <span class="o">%</span> <span class="nv">4294967296</span><span class="k">}]</span> <span class="k">}</span>
+    <span class="nv">method</span> toString <span class="k">{}</span> <span class="k">{</span> <span class="k">return</span> <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%-10d&quot;</span> <span class="nv">$MyValue</span><span class="k">]</span> <span class="k">}</span>
+    <span class="nv">method</span> toList <span class="k">{}</span> <span class="k">{</span>
+        <span class="k">set</span> outL     <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{</span> <span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x000000FF</span><span class="k">}]]</span>
+        <span class="nb">lappend</span> outL <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{(</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x0000FF00</span><span class="k">)</span> <span class="o">&gt;&gt;</span> <span class="nv">8</span><span class="k">}]]</span>
+        <span class="nb">lappend</span> outL <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{(</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x00FF0000</span><span class="k">)</span> <span class="o">&gt;&gt;</span> <span class="nv">16</span><span class="k">}]]</span>
+        <span class="nb">lappend</span> outL <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{(</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0xFF000000</span><span class="k">)</span> <span class="o">&gt;&gt;</span> <span class="nv">24</span><span class="k">}]]</span>
+        <span class="k">return</span> <span class="nv">$outL</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">set</span> MyValue <span class="k">[expr</span> <span class="k">{[</span><span class="nb">format</span> <span class="s2">&quot;0x%02x%02x%02x%02x&quot;</span> <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">lreverse</span> <span class="err">\</span>
+                                                    <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">0</span> <span class="mi">3</span><span class="k">]]]}]</span>
+        <span class="k">return</span> <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">4</span> end<span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-9'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-9'>#</a>
+      </div>
+      <hr />
+<h3>uint32_bt</h3>
+<p>Same as <em>uint32_t</em> except big-endian in byte list format.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::uint32_bt <span class="k">{</span>
+    <span class="nv">superclass</span> <span class="o">::</span>AutoObject::uint32_t
+
+    <span class="nv">method</span> toList <span class="k">{}</span> <span class="k">{</span>
+        <span class="k">set</span> outL     <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{(</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0xFF000000</span><span class="k">)</span> <span class="o">&gt;&gt;</span> <span class="nv">24</span><span class="k">}]]</span>
+        <span class="nb">lappend</span> outL <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{(</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x00FF0000</span><span class="k">)</span> <span class="o">&gt;&gt;</span> <span class="nv">16</span><span class="k">}]]</span>
+        <span class="nb">lappend</span> outL <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{(</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x0000FF00</span><span class="k">)</span> <span class="o">&gt;&gt;</span> <span class="nv">8</span><span class="k">}]]</span>
+        <span class="nb">lappend</span> outL <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%d&quot;</span> <span class="k">[expr</span> <span class="k">{</span> <span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x000000FF</span><span class="k">}]]</span>
+        <span class="k">return</span> <span class="nv">$outL</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">set</span> MyValue <span class="k">[expr</span> <span class="k">{[</span><span class="nb">format</span> <span class="s2">&quot;0x%02x%02x%02x%02x&quot;</span> <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">0</span> <span class="mi">3</span><span class="k">]]}]</span>
+        <span class="k">return</span> <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">4</span> end<span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-10'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-10'>#</a>
+      </div>
+      <hr />
+<h3>int32_t</h3>
+<p>Same as <em>uint32_t</em> except the value is interpreted as signed.
+Since list data is effectively unsigned, perform the final 2's complement
+on the MSbit, and don't force the <em>set</em> method to an unsigned value.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::int32_t <span class="k">{</span>
+    <span class="nv">superclass</span> <span class="o">::</span>AutoObject::uint32_t
+
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">newVal</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">set</span> MyValue <span class="nv">$newVal</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="nv">next</span> <span class="nv">$inList</span>
+        <span class="k">if</span> <span class="k">{</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x80000000</span><span class="k">}</span> <span class="k">{</span>
+            <span class="nb">incr</span> MyValue <span class="o">-</span><span class="mi">4294967296</span>
+        <span class="k">}</span>
+        <span class="k">return</span> <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">4</span> end<span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-11'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-11'>#</a>
+      </div>
+      <hr />
+<h3>int32_bt</h3>
+<p>Same as <em>uint32_t</em> except the list is interpreted as big-endian and the
+value is interpreted as signed.
+Since list data is effectively unsigned, perform the final 2's complement
+on the MSbit, and don't force the <em>set</em> method to an unsigned value.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::int32_bt <span class="k">{</span>
+    <span class="nv">superclass</span> <span class="o">::</span>AutoObject::uint32_bt
+
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">newVal</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">set</span> MyValue <span class="nv">$newVal</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="nv">next</span> <span class="nv">$inList</span>
+        <span class="k">if</span> <span class="k">{</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">0x80000000</span><span class="k">}</span> <span class="k">{</span>
+            <span class="nb">incr</span> MyValue <span class="o">-</span><span class="mi">4294967296</span>
+        <span class="k">}</span>
+        <span class="k">return</span> <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">4</span> end<span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-12'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-12'>#</a>
+      </div>
+      <hr />
+<h3>float_t</h3>
+<p>Four bytes of data interpreted as a single-precision IEEE format
+floating point number.</p>
+<p>N.B. that this works only when both sides of the serial interface agree on
+the bit format of a single-precision floating point number.  If they're the
+same processor or processor family it's not an issue; if it's inter-processor
+communication and one of the processors has a different floating-point
+format, much more complex manipulation is needed and a custom class should be
+created for that use.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::float_t <span class="k">{</span>
+    <span class="k">variable</span> MyValue MyWidget
+
+    <span class="nv">constructor</span> <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span> <span class="k">set</span> MyValue <span class="mf">0.0</span> <span class="k">}</span>
+    <span class="nv">method</span> get <span class="k">{}</span> <span class="k">{</span> <span class="k">return</span> <span class="nv">$MyValue</span> <span class="k">}</span>
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">newVal</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">if</span> <span class="k">[catch</span> <span class="k">{set</span> MyValue <span class="k">[expr</span> <span class="k">{</span><span class="nv">$newVal</span> <span class="o">+</span> <span class="nv">0.0</span><span class="k">}]}</span> errS<span class="k">]</span> <span class="k">{</span>
+            <span class="nv">log</span><span class="o">::</span>error <span class="s2">&quot;$newVal is Not a Number!  ($errS)&quot;</span>
+            <span class="k">set</span> MyValue <span class="s2">&quot;NaN&quot;</span>
+        <span class="k">}</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> toString <span class="k">{}</span> <span class="k">{</span>
+        <span class="k">if</span> <span class="k">[catch</span> <span class="k">{set</span> outS <span class="k">[</span><span class="nb">format</span> <span class="o">%</span><span class="mi">8</span>f <span class="nv">$MyValue</span><span class="k">]}]</span> <span class="k">{</span>
+            <span class="nv">log</span><span class="o">::</span>error <span class="s2">&quot;$MyValue is Not a Number!&quot;</span>
+        <span class="k">}</span>
+        <span class="k">return</span> <span class="nv">$outS</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> toList <span class="k">{}</span> <span class="k">{</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-13'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-13'>#</a>
+      </div>
+      <p>Convert using the native float format.  N.B. this works only
+when the target &amp; host use the same float format.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="nb">binary</span> scan <span class="k">[</span><span class="nb">binary</span> format f <span class="nv">$MyValue</span><span class="k">]</span> cu<span class="o">*</span> outL
+        <span class="k">return</span> <span class="nv">$outL</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-14'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-14'>#</a>
+      </div>
+      <p>Convert using the native float format.  N.B. this works only
+when the target &amp; host use the same float format.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="nb">binary</span> scan <span class="k">[</span><span class="nb">binary</span> format c4 <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">0</span> <span class="mi">3</span><span class="k">]]</span> f value
+        <span class="k">set</span> MyValue <span class="nv">$value</span>
+        <span class="k">return</span> <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">4</span> end<span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-15'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-15'>#</a>
+      </div>
+      <hr />
+<h3>time_t</h3>
+<p>Time is stored internally as a Unix time_t - a 32-bit count of seconds
+since the Unix epoch (Jan 1, 1970).  The set method will accept an integer
+directly, or if passed a non-integer will attempt to parse it using
+clock scan.  If that fails, it allows clock scan to throw the error.
+Since it's stored as a 32-bit int, most methods act as the <em>uint32_t</em>
+superclass.</p>
+<p>The Constructor can be passed a default time format string to be used when
+stringifying; we also add a method to set the default string later.
+<em>toString</em> accepts a format string; if one is not provided it uses the
+default string set earlier.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::time_t <span class="k">{</span>
+    <span class="nv">superclass</span> <span class="o">::</span>AutoObject::uint32_t
+    <span class="k">variable</span> MyFormatStr
+
+    <span class="nv">constructor</span> <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="err">;</span><span class="c"># default value for a new time object is &quot;now&quot;.</span>
+        <span class="k">set</span> MyValue <span class="k">[</span><span class="nb">clock</span> seconds<span class="k">]</span>
+        <span class="k">if</span> <span class="k">{</span><span class="nv">$args</span> <span class="nv">ne</span> <span class="s2">&quot;&quot;</span><span class="k">}</span> <span class="k">{</span>
+            <span class="k">set</span> MyFormatStr <span class="nv">$args</span>
+        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="k">set</span> MyFormatStr <span class="s2">&quot;%B %d, %Y at %H:%M:%S&quot;</span>
+        <span class="k">}</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">newVal</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">string</span> is integer <span class="o">-</span>strict <span class="nv">$newVal</span><span class="k">]}</span> <span class="k">{</span>
+           <span class="k">set</span> MyValue <span class="k">[</span><span class="nb">clock</span> scan <span class="nv">$newVal</span><span class="k">]</span>
+        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="k">set</span> MyValue <span class="nv">$newVal</span>
+        <span class="k">}</span>
+    <span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-16'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-16'>#</a>
+      </div>
+      <p><strong>time_t.toString</strong></p>
+<p>Note that for the <em>time_t</em> class, <em>toString</em> has an additional optional
+argument of a format string to be used for this particular call.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nv">method</span> toString <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">if</span> <span class="k">{</span><span class="nv">$args</span> <span class="nv">ne</span> <span class="s2">&quot;&quot;</span><span class="k">}</span> <span class="k">{</span>
+            <span class="k">set</span> fmtStr <span class="nv">$args</span>
+        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="k">set</span> fmtStr <span class="nv">$MyFormatStr</span>
+        <span class="k">}</span>
+        <span class="nv">tailcall</span> clock format <span class="nv">$MyValue</span> <span class="o">-</span>format <span class="nv">$fmtStr</span>
+    <span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-17'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-17'>#</a>
+      </div>
+      <p><strong>time_t.setFormat</strong> <em>newFormatString</em></p>
+<p>Note that the <em>time_t</em> class has an additional method: setFormat.
+This allows the user of the class to change the default format used
+whenever an object of this class is stringified with the <em>toString</em>
+method.  Also note that <em>toString</em> has an additional optional
+argument of a format string to be used for an individual call.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nv">method</span> setFormat <span class="k">{</span><span class="nv">newFmtStr</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">set</span> MyFormatStr <span class="nv">$newFmtStr</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-18'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-18'>#</a>
+      </div>
+      <hr />
+<h3>string_t</h3>
+<p><strong>N.B. This class requires the length of the field to be passed in on creation
+as an additional argument.  If not provided, the constructor will fail.</strong></p>
+<p>The <em>string_t</em> autoData type is constrained by the length of its field.  It
+will truncate any attempt to set it to longer to the first N characters that
+will fit into that field length.  If the input is shorter, the string will
+be filled to its field length with NULLs in the line format.</p>
+<p><em>string_t</em> expects its string-format data to be ASCII or UTF-8, one byte
+per character.  To store/transfer unicode data, use type <em>unicode_t</em>.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::string_t <span class="k">{</span>
+    <span class="k">variable</span> MyValue
+    <span class="k">variable</span> MyWidget
+    <span class="k">variable</span> MyMaxLength
+
+    <span class="nv">constructor</span> <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">string</span> is digit <span class="o">-</span>strict <span class="k">[</span><span class="nb">lindex</span> <span class="nv">$args</span> <span class="mi">0</span><span class="k">]]}</span> <span class="k">{</span>
+            <span class="nv">log</span><span class="o">::</span>critical <span class="s2">&quot;String_t constructor error: string length not\</span>
+<span class="s2">                    specified as field data value in defining list.\n\</span>
+<span class="s2">                    Specify field length in the fifth item of the list.&quot;</span>
+            <span class="k">error</span> <span class="s2">&quot;String_t constructor error: string length not\</span>
+<span class="s2">                    specified as field data value in defining list.&quot;</span>
+        <span class="k">}</span>
+        <span class="k">set</span> MyMaxLength <span class="k">[</span><span class="nb">lindex</span> <span class="nv">$args</span> <span class="mi">0</span><span class="k">]</span>
+        <span class="k">set</span> MyValue <span class="s2">&quot;&quot;</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> get <span class="k">{}</span> <span class="k">{</span> <span class="k">return</span> <span class="nv">$MyValue</span> <span class="k">}</span>
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">newVal</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">set</span> MyValue <span class="k">[</span><span class="nb">string</span> range <span class="nv">$newVal</span> <span class="mi">0</span> <span class="k">[expr</span> <span class="k">{</span><span class="nv">$MyMaxLength</span> <span class="nv">-</span> <span class="mi">1</span><span class="k">}]</span> <span class="k">]</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> toString <span class="k">{}</span> <span class="k">{</span> <span class="k">return</span> <span class="s2">&quot;\&quot;$MyValue\&quot;&quot;</span> <span class="k">}</span>
+    <span class="nv">method</span> toList <span class="k">{}</span> <span class="k">{</span>
+        <span class="nb">binary</span> scan <span class="nv">$MyValue</span> cu<span class="o">*</span> dataL
+        <span class="k">if</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$dataL</span><span class="k">]</span> <span class="o">&lt;</span> <span class="nv">$MyMaxLength</span><span class="k">}</span> <span class="k">{</span>
+            <span class="nb">lappend</span> dataL <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">lrepeat</span> <span class="k">[expr</span> <span class="k">{</span><span class="nv">$MyMaxLength</span> <span class="nv">-</span> <span class="k">[</span><span class="nb">llength</span> <span class="nv">$dataL</span><span class="k">]}]</span> <span class="mi">0</span><span class="k">]</span>
+        <span class="k">}</span>
+        <span class="k">return</span> <span class="nv">$dataL</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">if</span> <span class="k">{</span><span class="nv">$MyMaxLength</span> <span class="o">&lt;</span> <span class="k">[</span><span class="nb">llength</span> <span class="nv">$inList</span><span class="k">]}</span> <span class="k">{</span>
+            <span class="k">set</span> dataL <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">0</span> <span class="nv">$MyMaxLength-1</span><span class="k">]</span>
+        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="k">set</span> dataL <span class="nv">$inList</span>
+        <span class="k">}</span>
+        <span class="k">set</span> MyValue <span class="k">[</span><span class="nb">string</span> trimright <span class="k">[</span><span class="nb">binary</span> format c<span class="o">*</span> <span class="nv">$dataL</span><span class="k">]</span> <span class="err">&#39;\</span><span class="mi">0</span><span class="err">&#39;</span><span class="k">]</span>
+        <span class="k">return</span> <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="nv">$MyMaxLength</span> end<span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-19'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-19'>#</a>
+      </div>
+      <hr />
+<h3>unicode_t</h3>
+<p><strong>N.B. This class expects the length of the field <em>IN CHARACTERS</em> to be
+passed in on creation as an additional argument.  This is different from
+the length in bytes, as characters are expected to take on average 2 bytes
+each.  If not provided, the constructor will fail.  If the length is
+incorrect, the list/byte formats produced will not be the correct length.</strong></p>
+<p>The <em>unicode_t</em> autoData type is constrained by the length of its field.  It
+will truncate any attempt to set it to longer to the first N characters that
+will fit into that field length.  If the input is shorter, the string will
+be null terminated and filled with NULLs in the line format.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::unicode_t <span class="k">{</span>
+    <span class="nv">superclass</span> <span class="o">::</span>AutoObject::string_t
+    <span class="k">variable</span> MyValue MyMaxLength MyWidget
+
+    <span class="nv">method</span> toList <span class="k">{}</span> <span class="k">{</span>
+        <span class="nb">binary</span> scan <span class="k">[</span><span class="nb">encoding</span> convertto unicode <span class="nv">$MyValue</span><span class="k">]</span> cu<span class="o">*</span> dataL
+        <span class="k">if</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$dataL</span><span class="k">]</span> <span class="o">&lt;</span> <span class="k">[expr</span> <span class="k">{</span><span class="nv">$MyMaxLength</span> <span class="o">*</span> <span class="nv">2</span><span class="k">}]}</span> <span class="k">{</span>
+            <span class="nb">lappend</span> dataL <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">lrepeat</span> <span class="k">[expr</span> <span class="k">{</span><span class="nv">$MyMaxLength</span> <span class="o">*</span> <span class="nv">2</span> <span class="o">-</span> <span class="k">[</span><span class="nb">llength</span> <span class="nv">$dataL</span><span class="k">]}]</span> <span class="mi">0</span><span class="k">]</span>
+        <span class="k">}</span>
+        <span class="k">return</span> <span class="nv">$dataL</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> fromList <span class="k">{</span><span class="nv">inList</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">if</span> <span class="k">{</span><span class="nv">$MyMaxLength</span> <span class="o">&lt;</span> <span class="k">([</span><span class="nb">llength</span> <span class="nv">$inList</span><span class="k">]</span> <span class="o">/</span> <span class="nv">2</span><span class="k">)}</span> <span class="k">{</span>
+            <span class="k">set</span> dataL <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="mi">0</span> <span class="k">[expr</span> <span class="k">{(</span><span class="nv">$MyMaxLength</span> <span class="o">*</span> <span class="nv">2</span><span class="k">)</span> <span class="nv">-</span> <span class="mi">1</span><span class="k">}]]</span>
+        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="k">set</span> dataL <span class="nv">$inList</span>
+        <span class="k">}</span>
+        <span class="k">set</span> MyValue <span class="k">[</span><span class="nb">string</span> trimright <span class="k">[</span><span class="nb">encoding</span> convertfrom unicode <span class="err">\</span>
+                                       <span class="k">[</span><span class="nb">binary</span> format c<span class="o">*</span> <span class="nv">$dataL</span><span class="k">]]</span> <span class="err">&#39;\</span><span class="mi">0</span><span class="err">&#39;</span><span class="k">]</span>
+        <span class="k">return</span> <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$inList</span> <span class="k">[expr</span> <span class="k">{</span><span class="nv">$MyMaxLength</span> <span class="o">*</span> <span class="nv">2</span><span class="k">}]</span> end<span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-20'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-20'>#</a>
+      </div>
+      <hr />
+<h2>enum_mix</h2>
+<p>This class is a mixin for classes usually based on the <em>uint8_t</em> class
+(or <em>uint16_t</em> or <em>uint32_t</em> if you need large fields for some reason).
+The host class is expected to provide most of the features, including any
+of the length-specific code; the mixin only provides an override for the
+<em>set</em> and <em>toString</em> methods.</p>
+<p>N.B. that the <em>enum_mix</em> class is a bit of code clevverness that expects
+to be initialized before use.  The base class only provides the mechanisms;
+initialization provides the lookup table mapping the symbol to the enum
+value.   Without providing the definition of the enum, it's not very useful.</p>
+<p>To initialize, immediately after mixing it into the base class, invoke the
+<em>setEnumDef</em> proc with the classname and a list consisting of name/value
+pairs.  Objects of the ensuing class will then accept the symbolic names
+of the enum as inputs  to <em>set</em>, and will print via <em>toString</em> the symbolic
+names.</p>
+<p><strong>N.B. that the <em>setEnumDef</em> proc should be invoked on the <em>class</em>
+immediately after class definition, not on the resulting objects.
+The extra data is stored in the class object proper, not in the objects
+created by the class.</strong></p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::enum_mix <span class="k">{</span>
+    <span class="k">variable</span> defArray
+
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">newVal</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">set</span> ns <span class="k">[</span><span class="nb">info</span> object namespace <span class="k">[</span><span class="nb">info</span> object class <span class="k">[</span><span class="nv">self</span> object<span class="k">]]]</span>
+        <span class="k">upvar</span> <span class="err">$</span><span class="k">{</span><span class="nv">ns</span><span class="k">}</span><span class="o">::</span>defArray dA
+        <span class="k">if</span> <span class="k">{[</span><span class="nb">info</span> exists dA<span class="k">(</span><span class="nv">$newVal</span><span class="k">)]}</span> <span class="k">{</span>
+            <span class="k">set</span> MyValue <span class="nv">$dA</span><span class="k">(</span><span class="nv">$newVal</span><span class="k">)</span>
+        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="err">;</span><span class="c"># Sometimes input comes in 0x## hex format. Expr it to decimal.</span>
+            <span class="k">catch</span> <span class="k">{set</span> newVal <span class="k">[expr</span> <span class="nv">$newVal</span><span class="k">]}</span>
+            <span class="k">if</span> <span class="k">{[</span><span class="nb">info</span> exists dA<span class="k">(</span><span class="nv">val-$newVal</span><span class="k">)]}</span> <span class="k">{</span>
+                <span class="k">set</span> MyValue <span class="nv">$newVal</span>
+            <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+                <span class="nv">log</span><span class="o">::</span>warn <span class="s2">&quot;Tried to set enum [self] to unknown symbol $newVal&quot;</span>
+                <span class="k">set</span> MyValue <span class="nv">$newVal</span>
+            <span class="k">}</span>
+        <span class="k">}</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> toString <span class="k">{}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">set</span> ns <span class="k">[</span><span class="nb">info</span> object namespace <span class="k">[</span><span class="nb">info</span> object class <span class="k">[</span><span class="nv">self</span> object<span class="k">]]]</span>
+        <span class="k">upvar</span> <span class="err">$</span><span class="k">{</span><span class="nv">ns</span><span class="k">}</span><span class="o">::</span>defArray dA
+        <span class="k">if</span> <span class="k">{[</span><span class="nb">info</span> exists dA<span class="k">(</span><span class="nv">val-$MyValue</span><span class="k">)]}</span> <span class="k">{</span>
+            <span class="k">return</span> <span class="nv">$dA</span><span class="k">(</span><span class="nv">val-$MyValue</span><span class="k">)</span>
+        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="k">return</span> <span class="nv">$MyValue</span>
+        <span class="k">}</span>
+    <span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-21'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-21'>#</a>
+      </div>
+      <p>Important note: if using the GUI elements of the system, any <em>enum_mix</em>
+field should specify the <em>autoCombobox</em> widget as field 6 of the
+defining list.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nv">method</span> createWidget <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyWidget</pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-22'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-22'>#</a>
+      </div>
+      <p>N.B. that the <em>autoCombobox</em> widget method will be called first in
+the method chain, and that we only get here by the "next" call.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="k">if</span> <span class="k">{[</span><span class="nv">winfo</span> class <span class="nv">$MyWidget</span><span class="k">]</span> <span class="nv">ne</span> <span class="s2">&quot;TCombobox&quot;</span><span class="k">}</span> <span class="k">{</span>
+            <span class="nb">puts</span> <span class="s2">&quot;I ([self]) am a [winfo class $MyWidget]&quot;</span>
+            <span class="k">return</span>
+        <span class="k">}</span>
+        <span class="k">set</span> ns <span class="k">[</span><span class="nb">info</span> object namespace <span class="k">[</span><span class="nb">info</span> object class <span class="k">[</span><span class="nv">self</span> object<span class="k">]]]</span>
+        <span class="k">upvar</span> <span class="err">$</span><span class="k">{</span><span class="nv">ns</span><span class="k">}</span><span class="o">::</span>defArray dA
+        <span class="k">set</span> nL <span class="k">[array</span> names dA <span class="s2">&quot;val-*&quot;</span><span class="k">]</span>
+        <span class="k">foreach</span> n <span class="nv">$nL</span> <span class="k">{</span><span class="nb">lappend</span> enumL <span class="nv">$dA</span><span class="k">(</span><span class="nv">$n</span><span class="k">)}</span>
+        <span class="nv">$MyWidget</span> <span class="nv">configure</span> <span class="o">-</span>values <span class="nv">$enumL</span>
+        <span class="nv">bind</span> <span class="nv">$MyWidget</span> <span class="o">&lt;&lt;</span>ComboboxSelected<span class="o">&gt;&gt;</span> <span class="k">[</span><span class="nb">list</span> <span class="k">[</span><span class="nv">self</span><span class="k">]</span> widgetUpdate<span class="k">]</span>
+        <span class="nv">$MyWidget</span> <span class="k">set</span> <span class="k">[</span><span class="nv">my</span> toString<span class="k">]</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> widgetUpdate <span class="k">{}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyWidget
+        <span class="nv">my</span> set <span class="k">[</span><span class="nv">$MyWidget</span> <span class="nv">get</span><span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-23'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-23'>#</a>
+      </div>
+      <p>N.B. that the <em>setEnumDef</em> proc should be invoked on the <strong>class</strong>
+immediately after class definition, not on the resulting objects.
+The extra data is stored in the class object proper, not in the objects
+created by the class.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>AutoObject::setEnumDef <span class="k">{</span><span class="nv">classname</span> defL<span class="k">}</span> <span class="k">{</span>
+    <span class="k">namespace</span> upvar <span class="k">[</span><span class="nb">info</span> object namespace <span class="nv">$classname</span><span class="k">]</span> defArray dA
+    <span class="k">array</span> set dA <span class="nv">$defL</span>
+    <span class="k">foreach</span> <span class="k">{</span><span class="nv">key</span> val<span class="k">}</span> <span class="k">[array</span> get dA<span class="k">]</span> <span class="k">{</span>
+        <span class="k">set</span> dA<span class="k">(</span><span class="nv">val-$val</span><span class="k">)</span> <span class="nv">$key</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-24'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-24'>#</a>
+      </div>
+      <hr />
+<h2>bitfield_mix</h2>
+<p>N.B. This class is a mixin for classes based on the <em>uint8_t</em> class (or
+<em>uint16_t</em> or <em>uint32_t</em> if you need large fields for some reason).
+The host class is expected to provide most of the features, including any
+of the length-specific code; the mixin only provides an override for the
+<em>set</em>, <em>get</em> and <em>toString</em> methods.</p>
+<p>N.B. the <em>bitfield_mix</em> class is a bit of code clevverness that expects to be
+initialized before use.  The base class only provides the mechanisms;
+initialization provides the lookup table mapping the fields to the bits.
+Without providing the definition of the enum, it's not very useful.</p>
+<p>To initialize, immediately after mixing it into the base class, invoke the
+<em>setBitfieldDef</em> proc with the classname and a list consisting of field
+definition lists, where each field definition list is the name, number of
+bits, and (optional) enum value of the bit combinations (in order 0 -&gt; max).</p>
+<p><strong>N.B. that the <em>setBitfieldDef</em> proc should be invoked on the <em>class</em>
+immediately after class definition, not on the resulting objects.
+The extra data is stored in the class object proper, not in the objects
+created by the class.</strong></p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nv">oo</span><span class="o">::</span>class create <span class="o">::</span>AutoObject::bitfield_mix <span class="k">{</span>
+    <span class="k">variable</span> ns
+
+    <span class="nv">method</span> get <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue ns
+        <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists ns<span class="k">]}</span> <span class="k">{</span>
+            <span class="k">set</span> ns <span class="k">[</span><span class="nb">info</span> object namespace <span class="k">[</span><span class="nb">info</span> object class <span class="k">[</span><span class="nv">self</span> object<span class="k">]]]</span>
+        <span class="k">}</span>
+        <span class="k">upvar</span> <span class="err">$</span><span class="k">{</span><span class="nv">ns</span><span class="k">}</span><span class="o">::</span>defArray dA
+        <span class="k">if</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$args</span><span class="k">]</span> <span class="o">==</span> <span class="nv">0</span><span class="k">}</span> <span class="k">{</span>
+            <span class="k">return</span> <span class="nv">$MyValue</span>
+        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="k">set</span> outL <span class="k">{}</span>
+            <span class="k">foreach</span> field <span class="nv">$args</span> <span class="k">{</span>
+                <span class="k">set</span> val <span class="k">[expr</span> <span class="k">(</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">$dA</span><span class="k">(</span><span class="nv">$field</span><span class="err">,</span><span class="nv">mask</span><span class="k">)</span> <span class="k">)</span> <span class="err">\</span>
+                                    <span class="o">&gt;&gt;</span> <span class="nv">$dA</span><span class="k">(</span><span class="nv">$field</span><span class="err">,</span><span class="nv">shift</span><span class="k">)]</span>
+                <span class="nb">lappend</span> outL <span class="nv">$val</span>
+            <span class="k">}</span>
+            <span class="k">return</span> <span class="nv">$outL</span>
+        <span class="k">}</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> set <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue ns
+        <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists ns<span class="k">]}</span> <span class="k">{</span>
+            <span class="k">set</span> ns <span class="k">[</span><span class="nb">info</span> object namespace <span class="k">[</span><span class="nb">info</span> object class <span class="k">[</span><span class="nv">self</span> object<span class="k">]]]</span>
+        <span class="k">}</span>
+        <span class="k">upvar</span> <span class="err">$</span><span class="k">{</span><span class="nv">ns</span><span class="k">}</span><span class="o">::</span>defArray dA
+        <span class="k">set</span> len <span class="k">[</span><span class="nb">llength</span> <span class="nv">$args</span><span class="k">]</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-25'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-25'>#</a>
+      </div>
+      <p>If there's only one value, interpret it as setting the entire value</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="k">if</span> <span class="k">{</span><span class="nv">$len</span> <span class="o">==</span> <span class="nv">1</span><span class="k">}</span> <span class="k">{</span>
+            <span class="k">set</span> MyValue <span class="nv">$args</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-26'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-26'>#</a>
+      </div>
+      <p>If setting individual fields, must be a list of field/value pairs</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="k">}</span> <span class="k">elseif</span> <span class="k">{</span><span class="nv">$len</span> <span class="o">%</span> <span class="nv">2</span> <span class="o">==</span> <span class="mi">0</span><span class="k">}</span> <span class="k">{</span>
+            <span class="k">foreach</span> <span class="k">{</span><span class="nv">key</span> val<span class="k">}</span> <span class="nv">$args</span> <span class="k">{</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-27'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-27'>#</a>
+      </div>
+      <p>If there is an enum and the input is a known symbol,
+use its value</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>                <span class="k">if</span> <span class="k">{[</span><span class="nb">info</span> exists dA<span class="k">(</span><span class="nv">$key</span><span class="err">,</span><span class="nv">enumL</span><span class="k">)]</span> <span class="o">&amp;&amp;</span> <span class="err">\</span>
+                        <span class="k">(</span><span class="nv">$val</span> <span class="nv">in</span> <span class="nv">$dA</span><span class="k">(</span><span class="nv">$key</span><span class="err">,</span><span class="nv">enumL</span><span class="k">))}</span> <span class="k">{</span>
+                    <span class="k">set</span> val <span class="k">[</span><span class="nb">lsearch</span> <span class="nv">$dA</span><span class="k">(</span><span class="nv">$key</span><span class="err">,</span><span class="nv">enumL</span><span class="k">)</span> <span class="nv">$val</span><span class="k">]</span>
+                <span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-28'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-28'>#</a>
+      </div>
+      <p>Shift up the field value, mask &amp; combine with the rest.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>                <span class="k">set</span> MyValue <span class="k">[expr</span> <span class="k">{(</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="o">~</span><span class="nv">$dA</span><span class="k">(</span><span class="nv">$key</span><span class="err">,</span><span class="nv">mask</span><span class="k">))</span> <span class="o">|</span> <span class="err">\</span>
+                                    <span class="k">((</span><span class="nv">$val</span> <span class="o">&lt;&lt;</span> <span class="nv">$dA</span><span class="k">(</span><span class="nv">$key</span><span class="err">,</span><span class="nv">shift</span><span class="k">))</span> <span class="o">&amp;</span> <span class="err">\</span>
+                                    <span class="nv">$dA</span><span class="k">(</span><span class="nv">$key</span><span class="err">,</span><span class="nv">mask</span><span class="k">))}]</span>
+            <span class="k">}</span>
+        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="k">error</span> <span class="s2">&quot;Odd number of items in key/value list: \</span>
+<span class="s2">                        [llength $args] items in $args&quot;</span>
+        <span class="k">}</span>
+    <span class="k">}</span>
+    <span class="nv">method</span> toString <span class="k">{}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyValue
+        <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists ns<span class="k">]}</span> <span class="k">{</span>
+            <span class="k">set</span> ns <span class="k">[</span><span class="nb">info</span> object namespace <span class="k">[</span><span class="nb">info</span> object class <span class="k">[</span><span class="nv">self</span> object<span class="k">]]]</span>
+        <span class="k">}</span>
+        <span class="k">upvar</span> <span class="err">$</span><span class="k">{</span><span class="nv">ns</span><span class="k">}</span><span class="o">::</span>defArray dA
+        <span class="k">set</span> outS <span class="s2">&quot;&quot;</span>
+        <span class="k">set</span> newline <span class="s2">&quot;&quot;</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-29'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-29'>#</a>
+      </div>
+      <p>We print field names indented up to the data side of the format,
+so compute where that is.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="k">set</span> nameSize <span class="k">[expr</span> <span class="k">[</span><span class="nb">string</span> length <span class="k">[</span><span class="nb">lindex</span> <span class="nv">$dA</span><span class="k">(</span><span class="nv">nameL</span><span class="k">)</span> <span class="mi">0</span><span class="k">]]</span> <span class="o">+</span> <span class="mi">44</span><span class="k">]</span>
+        <span class="k">set</span> outS <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%s  Decoded to:\n&quot;</span> <span class="k">[</span><span class="nv">next</span><span class="k">]]</span>
+        <span class="k">foreach</span> name <span class="nv">$dA</span><span class="k">(</span><span class="nv">nameL</span><span class="k">)</span> <span class="k">{</span>
+            <span class="k">set</span> val <span class="k">[expr</span> <span class="k">(</span><span class="nv">$MyValue</span> <span class="o">&amp;</span> <span class="nv">$dA</span><span class="k">(</span><span class="nv">$name</span><span class="err">,</span><span class="nv">mask</span><span class="k">))</span> <span class="err">\</span>
+                                    <span class="o">&gt;&gt;</span> <span class="nv">$dA</span><span class="k">(</span><span class="nv">$name</span><span class="err">,</span><span class="nv">shift</span><span class="k">)]</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-30'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-30'>#</a>
+      </div>
+      <p>If there's an enum, print the symbol if it exists.
+Otherwise, print it in binary.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>            <span class="k">if</span> <span class="k">{[</span><span class="nb">info</span> exists dA<span class="k">(</span><span class="nv">$name</span><span class="err">,</span><span class="nv">enumL</span><span class="k">)]</span> <span class="o">&amp;&amp;</span> <span class="err">\</span>
+                    <span class="nv">$val</span> <span class="o">&lt;</span> <span class="k">[</span><span class="nb">llength</span> <span class="nv">$dA</span><span class="k">(</span><span class="nv">$name</span><span class="err">,</span><span class="nv">enumL</span><span class="k">)]}</span> <span class="k">{</span>
+                <span class="k">set</span> valS <span class="k">[</span><span class="nb">lindex</span> <span class="nv">$dA</span><span class="k">(</span><span class="nv">$name</span><span class="err">,</span><span class="nv">enumL</span><span class="k">)</span> <span class="nv">$val</span><span class="k">]</span>
+            <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+                <span class="k">set</span> size <span class="nv">$dA</span><span class="k">(</span><span class="nv">$name</span><span class="err">,</span><span class="nv">size</span><span class="k">)</span>
+                <span class="k">set</span> valS <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;b&#39;%0${size}b&quot;</span> <span class="nv">$val</span><span class="k">]</span>
+            <span class="k">}</span>
+            <span class="nb">append</span> outS <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%${nameSize}s - %s\n&quot;</span> <span class="nv">$name</span> <span class="nv">$valS</span><span class="k">]</span>
+        <span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-31'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-31'>#</a>
+      </div>
+      <p>trim to display multiline output properly in autoObject output</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="k">set</span> outS <span class="k">[</span><span class="nb">string</span> trimright <span class="nv">$outS</span> <span class="s2">&quot;\n&quot;</span><span class="k">]</span>
+        <span class="k">return</span> <span class="nv">$outS</span>
+    <span class="k">}</span>
+<span class="err">;</span><span class="c"># @@@ TODO %%%</span>
+<span class="err">;</span><span class="c"># Special widget not yet defined; commented out until working.</span>
+<span class="err">;</span><span class="c">#    # N.B. that the base widget method will be called first in the</span>
+<span class="err">;</span><span class="c">#    # method chain, and that we only get here by the &quot;next&quot; call.</span>
+<span class="err">;</span><span class="c">#    method createWidget {args} {</span>
+<span class="err">;</span><span class="c">#        my variable MyWidget</span>
+<span class="err">;</span><span class="c">#        set ns [info object namespace [info object class [self object]]]</span>
+<span class="err">;</span><span class="c">#        upvar ${ns}::defArray dA</span>
+<span class="err">;</span><span class="c">#        # Get rid of the old widget, replacing by the collection of</span>
+<span class="err">;</span><span class="c">#        # per-bitfield widgets</span>
+<span class="err">;</span><span class="c">#        set wname $MyWidget</span>
+<span class="err">;</span><span class="c">#        destroy $MyWidget</span>
+<span class="err">;</span><span class="c">#</span>
+<span class="err">;</span><span class="c">#        foreach name $dA(nameL) {</span>
+<span class="err">;</span><span class="c">#        }</span>
+<span class="err">;</span><span class="c">#</span>
+<span class="err">;</span><span class="c">#    }</span>
+    <span class="nv">method</span> widgetUpdate <span class="k">{}</span> <span class="k">{</span>
+        <span class="nv">my</span> variable MyWidget
+        <span class="nv">my</span> set <span class="k">[</span><span class="nv">$MyWidget</span> <span class="nv">get</span><span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-32'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-32'>#</a>
+      </div>
+      <p>N.B. that the <em>setBitfieldDef</em> proc should be invoked on the <strong>class</strong>
+immediately after class definition, not on the resulting objects.
+The extra data is stored in the class object proper, not in the objects
+created by the class.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>AutoObject::setBitfieldDef <span class="k">{</span><span class="nv">classname</span> defL<span class="k">}</span> <span class="k">{</span>
+    <span class="k">set</span> <span class="k">[</span><span class="nb">info</span> object namespace <span class="nv">$classname</span><span class="k">]</span><span class="o">::</span>ns <span class="k">[</span><span class="nb">info</span> object namespace <span class="nv">$classname</span><span class="k">]</span>
+    <span class="k">namespace</span> upvar <span class="k">[</span><span class="nb">info</span> object namespace <span class="nv">$classname</span><span class="k">]</span> defArray dA
+    <span class="k">set</span> offset <span class="mi">0</span>
+    <span class="k">foreach</span> bf <span class="nv">$defL</span> <span class="k">{</span>
+        <span class="k">set</span> name <span class="k">[</span><span class="nb">lindex</span> <span class="nv">$bf</span> <span class="mi">0</span><span class="k">]</span>
+        <span class="nb">lappend</span> nameL <span class="nv">$name</span>
+        <span class="k">set</span> size <span class="k">[</span><span class="nb">lindex</span> <span class="nv">$bf</span> <span class="mi">1</span><span class="k">]</span>
+        <span class="k">set</span> dA<span class="k">(</span><span class="nv">$name</span><span class="err">,</span><span class="nv">size</span><span class="k">)</span> <span class="nv">$size</span>
+        <span class="k">if</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$bf</span><span class="k">]</span> <span class="o">&gt;</span> <span class="nv">2</span><span class="k">}</span> <span class="k">{</span>
+            <span class="k">set</span> dA<span class="k">(</span><span class="nv">$name</span><span class="err">,</span><span class="nv">enumL</span><span class="k">)</span> <span class="k">[</span><span class="nb">lindex</span> <span class="nv">$bf</span> <span class="mi">2</span><span class="k">]</span>
+        <span class="k">}</span>
+        <span class="k">set</span> maskS <span class="k">[</span><span class="nb">string</span> repeat <span class="s2">&quot;1&quot;</span> <span class="nv">$size</span><span class="k">]</span>
+        <span class="nb">append</span> maskS <span class="k">[</span><span class="nb">string</span> repeat <span class="s2">&quot;0&quot;</span> <span class="nv">$offset</span><span class="k">]</span>
+        <span class="nb">scan</span> <span class="nv">$maskS</span> <span class="s2">&quot;%b&quot;</span> mask
+        <span class="k">set</span> dA<span class="k">(</span><span class="nv">$name</span><span class="err">,</span><span class="nv">shift</span><span class="k">)</span> <span class="nv">$offset</span>
+        <span class="k">set</span> dA<span class="k">(</span><span class="nv">$name</span><span class="err">,</span><span class="nv">mask</span><span class="k">)</span> <span class="nv">$mask</span>
+        <span class="k">set</span> offset <span class="k">[expr</span> <span class="k">{</span><span class="nv">$offset</span> <span class="o">+</span> <span class="nv">$size</span><span class="k">}]</span>
+    <span class="k">}</span>
+    <span class="k">set</span> dA<span class="k">(</span><span class="nv">nameL</span><span class="k">)</span> <span class="nv">$nameL</span>
+<span class="k">}</span>
+
+</pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+</div>
+</body>
