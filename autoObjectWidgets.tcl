@@ -1,8 +1,3 @@
-#!/bin/sh
-# -*- tcl -*-
-# The next line is executed by /bin/sh, but not tcl \
-exec tclsh "$0" ${1+"$@"}
-
 #--------------------------------------------------------------------------
 #
 # FILENAME:    autoObjectWidgets.tcl
@@ -17,40 +12,61 @@ exec tclsh "$0" ${1+"$@"}
 #               mixin classes, allowing them to be attached to many common
 #               data types.
 #
-#               Common widgets provided include:
-#               autoEntry
-#               autoCombobox (for enums)
+# Common widgets provided include:
 #
-#--------------------------------------------------------------------------
+# * autoEntry
+# * autoCombobox (for enums)
+# * autoLabel   (for read-only fields)
+# * autoNone    (for fields that should not display in the GUI)
 #
-# Copyright 2015-16, Erik N. Johnson
+###########################################################################
 #
-#--------------------------------------------------------------------------
+# Copyright 2015-17, Erik N. Johnson
+#
+# This package documentation is auto-generated with
+# Pycco: <https://pycco-docs.github.io/pycco/>
+#
+# Use "pycco filename" to re-generate HTML documentation in ./docs .
+#
+
+###########################################################################
 
 #--------------------------------------------------------------------------
-#  autoObject widget classes
+###  autoObject widget classes
 #
 # All widgets intended for use with AutoObject fields *must* support
 # the following canonical methods:
+#
 #   * createWidget
 #
-# All classes should be declared in the ::AutoObject:: namespace, as below.
+# All classes should be declared in the *::AutoObject::* namespace, as below.
 # N.B. that the widgets rely on the value of the object being in the canonical
-# variable "MyValue".  If this does not hold for your class, you will need to
+# variable *MyValue*.  If this does not hold for your class, you will need to
 # recreate any widgets to work with the difference.
 #
-#
+# The initial widgets all use the *validate* method and tie it to the
+# *validatecommand* option of the widget.  This allows the objects to catch
+# the update of the widget contents as they happen and reflect them into
+# the underlying object variables.
+
 #--------------------------------------------------------------------------
-#  autoEntry 
+####  autoEntry
 #
-# Default widget for common use.  Simple entry field.
+# Default widget for common use.  Simple entry field.  Expects the value to
+# be stored in the canonical AutoObject name MyValue.  N.B. that if your base
+# class stores its data in a different place, you will need to use a different
+# widget.
 oo::class create ::AutoObject::autoEntry {
-    
+
     method createWidget {wname args} {
         my variable MyValue
         my variable MyWidget
-        set MyWidget [ttk::entry $wname -textvariable [self namespace]::MyValue \
-                      -validate focusout -validatecommand [list [self] validate] {*}$args]
+        set MyWidget [ttk::entry $wname \
+            -textvariable [self namespace]::MyValue \
+            -validate focusout \
+            -validatecommand [list [self] validate] \
+            -width 12 \
+            {*}$args]
         oo::objdefine [self] forward widget $MyWidget
         if {[self next] ne {}} {next {*}$args}
         return $MyWidget
@@ -64,12 +80,12 @@ oo::class create ::AutoObject::autoEntry {
 }
 
 #--------------------------------------------------------------------------
-#  autoCombobox
+#### autoCombobox
 #
 # Most commonly used with data that's got an enum_mix mixed in.  Basic setup
-# done here; note the call to "next", which calls the base class's method - 
+# done here; note the call to "next", which calls the base class's method -
 # the enum_mix class populates the pick list and handles the housekeeping.
-# Other classes may choose to use it differently.  
+# Other classes may choose to use it differently.
 oo::class create ::AutoObject::autoCombobox {
 
     method createWidget {wname args} {
@@ -92,15 +108,16 @@ oo::class create ::AutoObject::autoCombobox {
 }
 
 #--------------------------------------------------------------------------
-#  autoLabel
+####  autoLabel
 #
-# Unmodifiable label, for fixed fields
+# Unmodifiable label, intended for read-only fields.
 oo::class create ::AutoObject::autoLabel {
 
     method createWidget {wname args} {
         my variable MyValue
         my variable MyWidget
-        set MyWidget [ttk::label $wname -textvariable [self namespace]::MyValue {*}$args]
+        set MyWidget [ttk::label $wname -textvariable \
+                      [self namespace]::MyValue {*}$args]
         oo::objdefine [self] forward widget $MyWidget
         if {[self next] ne {}} {next {*}$args}
         return $MyWidget
@@ -108,9 +125,10 @@ oo::class create ::AutoObject::autoLabel {
 }
 
 #--------------------------------------------------------------------------
-#  autoNone
+####  autoNone
 #
-# non-widget for reserved fields
+# Non-widget for reserved fields and other fields that for whatever reason
+# should not be displayed in the GUI.
 oo::class create ::AutoObject::autoNone {
 
     method createWidget {wname args} {
@@ -119,5 +137,3 @@ oo::class create ::AutoObject::autoNone {
         return $MyWidget
     }
 }
-
-

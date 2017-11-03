@@ -128,8 +128,8 @@ puts "Save to Byte Array..."
 set valueBA [$firstObject toByteArray]
 set expectBA [binary format "c*" $saveL]
 if {![string equal $valueBA $expectBA]} {
-    error "toByteArray failed:\n\tExpected: [binary scan $expectBA "c*"]\n\
-                                \tActual:   [binary scan $valueBA "c*"]"
+    error "toByteArray failed:\n\tExpected: [binary scan $expectBA "cu*"]\n\
+                                \tActual:   [binary scan $valueBA "cu*"]"
 } else {
     puts "toByteArray PASS"
 }
