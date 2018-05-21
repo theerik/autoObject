@@ -101,8 +101,11 @@ widget.</p>
     <span class="nv">method</span> createWidget <span class="k">{</span><span class="nv">wname</span> args<span class="k">}</span> <span class="k">{</span>
         <span class="nv">my</span> variable MyValue
         <span class="nv">my</span> variable MyWidget
-        <span class="k">set</span> MyWidget <span class="k">[</span><span class="nv">ttk</span><span class="o">::</span>entry <span class="nv">$wname</span> <span class="o">-</span>textvariable <span class="k">[</span><span class="nv">self</span> namespace<span class="k">]</span><span class="o">::</span>MyValue <span class="err">\</span>
-            <span class="nv">-validate</span> focusout <span class="o">-</span>validatecommand <span class="k">[</span><span class="nb">list</span> <span class="k">[</span><span class="nv">self</span><span class="k">]</span> validate<span class="k">]</span> <span class="o">-</span>width <span class="mi">12</span> <span class="err">\</span>
+        <span class="k">set</span> MyWidget <span class="k">[</span><span class="nv">ttk</span><span class="o">::</span>entry <span class="nv">$wname</span> <span class="err">\</span>
+            <span class="nv">-textvariable</span> <span class="k">[</span><span class="nv">self</span> namespace<span class="k">]</span><span class="o">::</span>MyValue <span class="err">\</span>
+            <span class="nv">-validate</span> focusout <span class="err">\</span>
+            <span class="nv">-validatecommand</span> <span class="k">[</span><span class="nb">list</span> <span class="k">[</span><span class="nv">self</span><span class="k">]</span> validate<span class="k">]</span> <span class="err">\</span>
+            <span class="nv">-width</span> <span class="mi">12</span> <span class="err">\</span>
             <span class="k">{</span><span class="o">*</span><span class="k">}</span><span class="nv">$args</span><span class="k">]</span>
         <span class="nv">oo</span><span class="o">::</span>objdefine <span class="k">[</span><span class="nv">self</span><span class="k">]</span> forward widget <span class="nv">$MyWidget</span>
         <span class="k">if</span> <span class="k">{[</span><span class="nv">self</span> next<span class="k">]</span> <span class="nv">ne</span> <span class="k">{}}</span> <span class="k">{</span><span class="nv">next</span> <span class="k">{</span><span class="o">*</span><span class="k">}</span><span class="nv">$args</span><span class="k">}</span>
