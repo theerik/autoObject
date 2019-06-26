@@ -45,7 +45,7 @@ Pycco: <a href="https://pycco-docs.github.io/pycco/">https://pycco-docs.github.i
 <p>Use "pycco filename" to re-generate HTML documentation in ./docs .</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre></pre></div>
+      <div class="highlight"><pre><span></span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -684,12 +684,12 @@ created by the class.</strong></p>
             <span class="k">set</span> MyValue <span class="nv">$dA</span><span class="k">(</span><span class="nv">$newVal</span><span class="k">)</span>
         <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
             <span class="err">;</span><span class="c"># Sometimes input comes in 0x## hex format. Expr it to decimal.</span>
-            <span class="k">catch</span> <span class="k">{set</span> newVal <span class="k">[expr</span> <span class="nv">$newVal</span><span class="k">]}</span>
-            <span class="k">if</span> <span class="k">{[</span><span class="nb">info</span> exists dA<span class="k">(</span><span class="nv">val-$newVal</span><span class="k">)]}</span> <span class="k">{</span>
-                <span class="k">set</span> MyValue <span class="nv">$newVal</span>
+            <span class="k">catch</span> <span class="k">{set</span> expVal <span class="k">[expr</span> <span class="nv">$newVal</span><span class="k">]}</span>
+            <span class="k">if</span> <span class="k">{[</span><span class="nb">info</span> exists dA<span class="k">(</span><span class="nv">val-$expVal</span><span class="k">)]}</span> <span class="k">{</span>
+                <span class="k">set</span> MyValue <span class="nv">$expVal</span>
             <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
-                <span class="nv">log</span><span class="o">::</span>warn <span class="s2">&quot;Tried to set enum [self] to unknown symbol $newVal&quot;</span>
-                <span class="k">set</span> MyValue <span class="nv">$newVal</span>
+                <span class="nv">log</span><span class="o">::</span>warn <span class="s2">&quot;Tried to set enum [self] ([info object class [self object]]) to unknown symbol $expVal&quot;</span>
+                <span class="k">set</span> MyValue <span class="nv">$expVal</span>
             <span class="k">}</span>
         <span class="k">}</span>
     <span class="k">}</span>

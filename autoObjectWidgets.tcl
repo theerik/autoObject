@@ -21,7 +21,7 @@
 #
 ###########################################################################
 #
-# Copyright 2015-17, Erik N. Johnson
+# Copyright 2015-18, Erik N. Johnson
 #
 # This package documentation is auto-generated with
 # Pycco: <https://pycco-docs.github.io/pycco/>

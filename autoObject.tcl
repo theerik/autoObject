@@ -17,7 +17,7 @@
 #
 ###########################################################################
 #
-# Copyright 2015-17, Erik N. Johnson
+# Copyright 2015-18, Erik N. Johnson
 #
 ###########################################################################
 #
@@ -30,9 +30,10 @@
 package require TclOO
 package require logger
 
+# Exclude if somehow sourced more than once.
 if {![namespace exists ::AutoObject] } {
     namespace eval ::AutoObject {
-        variable version 0.7
+        variable AUTOOBJECT_VERSION 0.11
         logger::init ::autoObject
         logger::import -all -namespace ::autoObject::log ::autoObject
         ::autoObject::log::setlevel warn
@@ -65,11 +66,20 @@ source [file join [file dirname [info script]] autoObjectData.tcl]
 # * *$object* toList
 # * *$object* fromByteArray *binaryString*
 # * *$object* toByteArray
-# * *$object* isInitialized
 # * *$object* follow
 # * *$object* createWidget
 #
-# There are two methods used for internal purposes only:
+# The base class also supports the Tk-style configure/cget interface for
+# options.  The base class options are only *-initialized*, which indicates if
+# this object has had any fields set since creation, and *-level*, which sets
+# the level of log messages (per the *logger* package,
+# <https://core.tcl.tk/tcllib/doc/trunk/embedded/www/tcllib/files/modules/log/logger.html>).
+# Other options can be added by extension.
+#
+# * *$object* configure *option* *value* ?*option *value* ...?
+# * *$object* cget ?*option*?
+#
+# The base class also has two non-public methods used for internal purposes only:
 #
 # * SortByOffset *arrayName* *a* *b*
 # * IterField *fieldName* *args*
@@ -81,6 +91,9 @@ oo::class create ::autoObject {
     variable Initialized
     variable NameL
     variable Variable_size
+    variable WidgetTopRows
+    variable WidgetBotCols
+    variable Options
 
     #--------------------------------------------------------------------------
     ### autoObject constructor
@@ -125,20 +138,24 @@ oo::class create ::autoObject {
     #
     constructor { defineL } {
         logger::import -all -force -namespace log ::autoObject
-;#log::setlevel debug
+        ;# Uncomment this for verbose logging of constructor issues.
+        ;#log::setlevel debug
 
         array set definingArr $defineL
-        set currOffset 0
+        set BlockSize 0
         set Variable_size 0
         set Initialized false
+        set WidgetTopRows 20
+        set WidgetBotCols 4
+        set Options {-initialized -level}
         # There are multiple times we'll want the list of field names sorted by
         # the field offset, so we do the sort once and save it for the future.
         set NameL [lsort -command "my SortByOffset definingArr" \
                    [array names definingArr]]
 
         # As we read the field list to initialize the fields, parse the
-        # sizes and offsets to validate the input.  There should be no
-        # missing bytes in the structure.
+        # sizes and offsets to validate the input.
+        # Important:  there cannot be any missing bytes in the structure.
         foreach field $NameL {
             # Take the special token "variable_length_object" out of the
             # NameL - we don't want to treat it like a normal field.
@@ -147,155 +164,321 @@ oo::class create ::autoObject {
                 set Variable_size $definingArr($field)
                 set idx [lsearch $NameL "variable_length_object"]
                 set NameL [lreplace $NameL $idx $idx]
-                continue
+            # For normal fields, call the *addField* method and update the
+            # current known size of the object based on the result.
+            } else {
+                my addField $defineL $field
+                set BlockSize [expr {$BlockSize + $FieldInfo($field,size)}]
             }
-            set fieldList $definingArr($field)
-            log::debug "$field: $fieldList"
-            set FieldInfo($field,offset) [lindex $fieldList 0]
-            if {$currOffset != $FieldInfo($field,offset)} {
-                error "Invalid defining list: at offset\
-                       $FieldInfo($field,offset), expected $currOffset"
-            }
-            set FieldInfo($field,size) [lindex $fieldList 1]
-            set currOffset [expr {$currOffset + $FieldInfo($field,size)}]
+        }
+    }
 
-            # Find the data type corresponding to the name.  Start by parsing
-            # out any array syntax.  Then look in various namespaces to find
-            # a definition of the type.
-            set tname "[lindex $fieldList 2]"
-            set isarray [regexp {(.+)\[([0-9]+)\]} $tname -> basename arrcount]
-            if $isarray {
-                set tname $basename
-            } else {
-                set arrcount 0
+    destructor {
+        log::debug "destroying [self]"
+        foreach key $NameL {
+            foreach obj $DataArray($key) {
+                $obj destroy
             }
-            if {"::AutoObject::$tname" in \
-                    [info class instances oo::class ::AutoObject::*]} {
-                # Found as a type declared in the appropriate namespace
-                set tname "::AutoObject::$tname"
-            } elseif {[lsearch [info class instances oo::class] "*$tname"] \
-                        != -1} {
-                # Found a class defined in a different namespace; we either try
-                # it or die in error, so we may as well keep going and try it.
-                log::debug "class list: \
-                            [info class instances oo::class ::AutoObject::*]"
-                set msg "No $tname in expected namespace. \
-                            Found %s and will try it."
-                set tname [lindex [info class instances oo::class] \
-                           [lsearch [info class instances oo::class] "*$tname"]]
-                log::info [format $msg $tname]
+        }
+    }
+
+    #----------------------------------------------------------------------
+    #
+    # To allow subclassing operations to use the main autoObject engine to
+    # dynamically add new fields to an existing object, the *addField* engine
+    # is separately exposed.  Normally this is only called by the constructor,
+    # and it should **_NEVER_** be called lightly.  Adding fields without
+    # knowing *exactly* what you're doing will almost certainly break your
+    # objects.  In particular, normal error checking is not done, and the
+    # NameL field that is used to drive the to/from/List/String/etc. methods
+    # has to be correctly modified to come back into synch with the field
+    # data, where the definition of "correct" will vary in each use case.
+    #
+    # Most commonly, a type that expects to be subclassed will place the
+    # uninterpreted bytes in a byte array field called "payload", which will
+    # need to be removed from NameL and replaced by all the fields that comprise
+    # that data when subtyped.  Usually the subtype would determined by the
+    # contents of "payload", but I'm sure this will be false in some cases I
+    # haven't thought of yet.
+
+    ##### autoObject.addField
+    #
+    # *addField* takes the defining list-of-lists and a field name within
+    # that list as inputs.  It creates all of the data objects for that field,
+    # placing them in the FieldData array, and defines all of the FieldInfo
+    # values that allow the data operations to be carried out.
+    #
+    method addField {defineL field} {
+        array set definingArr $defineL
+        set fieldList $definingArr($field)
+        log::debug "$field: $fieldList"
+        if {$BlockSize != [lindex $fieldList 0]} {
+            error "Invalid defining list: at offset\
+                   [lindex $fieldList 0], expected $BlockSize"
+        }
+        set FieldInfo($field,offset) [lindex $fieldList 0]
+        set FieldInfo($field,size) [lindex $fieldList 1]
+
+        # First, find the data type corresponding to the name.  Start by
+        # parsing out any array syntax.  Then look in various namespaces to
+        # find a definition of the type.
+        set tname "[lindex $fieldList 2]"
+        set isarray [regexp {(.+)\[([0-9]+)\]} $tname -> basename arrcount]
+        if {$isarray} {
+            set tname $basename
+        } else {
+            set arrcount 0
+        }
+        # **Case 1:** Found as a type declared in the appropriate namespace
+        if {"::AutoObject::$tname" in \
+                [info class instances oo::class ::AutoObject::*]} {
+            set tname "::AutoObject::$tname"
+        # **Case 2:** Found a class defined in a different namespace; we either
+        # try it or die in error, so we may as well keep going and try it.
+        } elseif {[lsearch [info class instances oo::class] "*$tname"] \
+                    != -1} {
+            log::debug "class list: \
+                        [info class instances oo::class ::AutoObject::*]"
+            set msg "No $tname in expected ::AutoObject:: namespace. \
+                        Found %s and will try it."
+            set tname [lindex [info class instances oo::class] \
+                       [lsearch [info class instances oo::class] "*$tname"]]
+            log::info [format $msg $tname]
+        # **Case 3:** Can't find a class with that name.  Error out.
+        } else {
+            log::error "Unknown type requested: $tname"
+            log::error "List of autoObject classes: \
+                        [info class instances oo::class ::AutoObject::*]"
+            log::error "List of other known classes: \
+                        [info class instances oo::class]"
+            error "Unknown type requested: $tname"
+        }
+        set FieldInfo($field,tname) $tname
+        set FieldInfo($field,arrcnt) $arrcount
+
+        # Second, unpack & store the rest of the defining information.
+        if {[llength $fieldList] > 3} {
+            set initData [lindex $fieldList 3]
+        } else {
+            set initData {}
+        }
+        if {[llength $fieldList] > 4} {
+            set typeData [lindex $fieldList 4]
+        } else {
+            set typeData {}
+        }
+        # Third, attempt to determine the widget type, if one is defined.
+        if {([llength $fieldList] > 5) && ([lindex $fieldList 5] ne {})} {
+            set wname [lindex $fieldList 5]
+            if {$wname eq "self"} {
+                set widgetName "self"
+            # **Case 1:** Found widget as a type declared in the appropriate namespace
+            } elseif {"::AutoObject::$wname" in \
+                        [info class instances oo::class ::AutoObject::*]} {
+                set widgetName "::AutoObject::$wname"
+            # **Case 2:** Found something not in the right namespace; we either try it
+            # or die in error, so we may as well keep going and try it.
+            } elseif {[lsearch [info class instances oo::class] "*$wname"] != -1} {
+                log::debug "class list: [info class instances oo::class ::AutoObject::*]"
+                set msg "No $wname in expected namespace.  Found %s and will try it."
+                set widgetName [lindex [info class instances oo::class] \
+                           [lsearch [info class instances oo::class] "*$wname"]]
+                log::info [format $msg $widgetName]
+            # **Case 3:** Can't find a widget by that name.  Error out.
             } else {
-                # Can't find a class with that name.  Error out.
-                log::error "Unknown type requested: $tname"
-                log::error "List of autoObject classes: \
-                            [info class instances oo::class ::AutoObject::*]"
+                log::error "Unknown type requested: $wname"
+                log::error "List of autoObject classes: [info class instances oo::class ::AutoObject::*]"
                 log::error "List of classes: [info class instances oo::class]"
-                error "Unknown type requested: $tname"
+                error "Unknown type requested: $wname"
             }
-            set FieldInfo($field,tname) $tname
-            set FieldInfo($field,arrcnt) $arrcount
-            # Unpack & store the rest of the defining information.
-            if {[llength $fieldList] > 3} {
-                set initData [lindex $fieldList 3]
-            } else {
-                set initData {}
+        } else {
+            set widgetName ::AutoObject::autoEntry
+        }
+        # Finally, create the field objects within the container object.
+        # Start by checking to see if field is an array of objects.
+        if {$isarray} {
+            # It's an array.  Validate that the total specified data size is
+            # an integral number of bytes per entry.
+            set bytesPerObj [expr {int($FieldInfo($field,size) / $arrcount)}]
+            if {$arrcount * $bytesPerObj != $FieldInfo($field,size)} {
+                error "Size not an integer multiple of array count.\n\
+                       Array count: $arrcount, size: $FieldInfo($field,size)"
             }
-            if {[llength $fieldList] > 4} {
-                set typeData [lindex $fieldList 4]
-            } else {
-                set typeData {}
+            # If we weren't given an exact list of initializer data, one
+            # entry per element, assume what we were given is for one element.
+            # Replicate it to cover all elements.
+            if {([llength $initData] != $arrcount) && ($initData ne {})} {
+                set initData [lrepeat $arrcount $initData]
             }
-            if {([llength $fieldList] > 5) && ([lindex $fieldList 5] ne {})} {
-                set wname [lindex $fieldList 5]
-                if {$wname eq "self"} {
-                    set widgetName "self"
-                } elseif {"::AutoObject::$wname" in \
-                            [info class instances oo::class ::AutoObject::*]} {
-                    # Found widget as a type declared in the appropriate namespace
-                    set widgetName "::AutoObject::$wname"
-                } elseif {[lsearch [info class instances oo::class] "*$wname"] != -1} {
-                    # Found something not in the right namespace; we either try it
-                    # or die in error, so we may as well keep going and try it.
-                    log::debug "class list: [info class instances oo::class ::AutoObject::*]"
-                    set msg "No $wname in expected namespace.  Found %s and will try it."
-                    set widgetName [lindex [info class instances oo::class] \
-                               [lsearch [info class instances oo::class] "*$wname"]]
-                    log::info [format $msg $widgetName]
-                } else {
-                    log::error "Unknown type requested: $wname"
-                    log::error "List of autoObject classes: [info class instances oo::class ::AutoObject::*]"
-                    log::error "List of classes: [info class instances oo::class]"
-                    error "Unknown type requested: $wname"
-                }
-            } else {
-                set widgetName ::AutoObject::autoEntry
-            }
-            # Create the field objects within the container object.
-            # First check to see if field is an array of objects.
-            if {$isarray} {
-                # Validate that size is an integral number of bytes per entry
-                set bytesPerObj [expr {int($FieldInfo($field,size) / $arrcount)}]
-                if {$arrcount * $bytesPerObj != $FieldInfo($field,size)} {
-                    error "Size not an integer multiple of array count.\n\
-                           Array count: $arrcount, size: $FieldInfo($field,size)"
-                }
-                # If we weren't given an exact list of initializer data,
-                # assume what we were given is for one element.  Replicate
-                # it to cover all elements.
-                if {([llength $initData] != $arrcount) && ($initData ne {})} {
-                    set initData [lrepeat $arrcount $initData]
-                }
-                set DataArray($field) {}
-                # Create *arrcount* new objects of the specified type and
-                # store them in a list in this field.
-                for {set idx 0} {$idx < $arrcount} {incr idx} {
-                    if [catch {set obj [$tname new $typeData]}] {
-                        error "Failed to create new object of type\
-                               $tname for field $field element $idx:\
-                               $::errorInfo"
-                    }
-                    if {$initData ne {}} {
-                        $obj set [lindex $initData $idx]
-                    }
-                    # Mix in the GUI class for each object
-                    if {$widgetName ne "self"} {
-                        oo::objdefine $obj [list mixin $widgetName]
-                    }
-                    lappend DataArray($field) $obj
-                }
-                # Forward the field name as a method name to a special
-                # method that iterates across the list of objects in the field,
-                # runs whatever method of the item the user wants on each one,
-                # and collects the results in a list that is returned.
-                oo::objdefine [self] forward $field my IterField $field
-            } else {
-                # Single object, not an array.  Just create & init it.
-                if [catch {set DataArray($field) [$tname new $typeData]}] {
+            set DataArray($field) {}
+            # Create *arrcount* new objects of the specified type and
+            # store them in a list in this field.
+            for {set idx 0} {$idx < $arrcount} {incr idx} {
+                if [catch {set obj [$tname new $typeData]}] {
                     error "Failed to create new object of type\
-                           $tname for field $field: $::errorInfo"
+                           $tname for field $field element $idx:\
+                           $::errorInfo"
                 }
                 if {$initData ne {}} {
-                    $DataArray($field) set $initData
+                    if {[catch {$obj set [lindex $initData $idx]} result]} {
+                        error "Initializing field $field with a new $tname\
+                               to index $idx of $initData with result $result"
+                    }
                 }
-                # Mix in the GUI class
+                # Mix in the UI class for each object
                 if {$widgetName ne "self"} {
-                    oo::objdefine $DataArray($field) [list mixin $widgetName]
+                    oo::objdefine $obj [list mixin $widgetName]
                 }
-                # Forward the field name as a method name to the object that
-                # the field is composed of.
-                oo::objdefine [self] forward $field $DataArray($field)
+                lappend DataArray($field) $obj
             }
-            # Export the forwarded method so users can call it.
+            # Forward the field name as a method name to a special
+            # method that iterates across the list of objects in the field,
+            # runs whatever method of the item the user wants on each one,
+            # and collects the results in a list that is returned, and
+            # export the forwarded method so users can call it.
+            oo::objdefine [self] forward $field my IterField $field
+            oo::objdefine [self] export $field
+        # It's a single object, not an array.  Just create & init it.
+        } else {
+            if [catch {set DataArray($field) [$tname new $typeData]}] {
+                error "Failed to create new object of type\
+                       $tname for field $field: $::errorInfo"
+            }
+            if {$initData ne {}} {
+                $DataArray($field) set $initData
+            }
+            # Mix in the UI class
+            if {$widgetName ne "self"} {
+                oo::objdefine $DataArray($field) [list mixin $widgetName]
+            }
+            # Forward the field name as a method name to the object that
+            # the field is composed of, and export the forwarded method
+            # so users can call it.
+            oo::objdefine [self] forward $field $DataArray($field)
             oo::objdefine [self] export $field
         }
-        set BlockSize $currOffset
+    }
+
+    #----------------------------------------------------------------------
+    ##### autoObject.configure
+    #
+    # Support for the traditional Tk configure operator, which can change
+    # the values of the various object options. Pairs with cget.
+    #
+    # The base class supports the following options:
+    #
+    # * *-initialized*: sets the internal Initialized flag.
+    #           Initialized is set false on creation, set true on
+    #           *fromList*, *fromWire*, or *set*.  This only needs
+    #           to be overridden to allow a object with all fields
+    #           still at default values to be serialized.
+    # * *-level*: sets the level of logging, per the *logger* package.
+    #           Possible values are : debug, info, notice, warn,
+    #           error, critical, alert, and emergency.  Nothing
+    #           above error is used in this package.  For details, see
+    # <https://core.tcl.tk/tcllib/doc/trunk/embedded/www/tcllib/files/modules/log/logger.html>).
+    #
+    # To extend this in a subclass, I recommend beginning by calling *next* to
+    # allow the base case to handle the errors and its own options, then
+    # (assuming no errors) handling your own options.  E.g.:
+    #
+    #       method configure {args} {
+    #           next {*}$args
+    #           foreach {opt value} $args {
+    #               switch -exact -- $opt {
+    #                   -myOption {
+    #                       # does things
+    #                   }
+    #               }
+    #           }
+    #       }
+    #
+    # Also, note that the Options base class variable should have your new
+    # options appended in the constructor.  E.g.:
+    #
+    #       my variable Options
+    #       lappend Options "-myOption"
+    method configure {args} {
+        if {[llength $args] == 0} {
+            my variable Options
+            return $Options
+        } elseif {[llength $args] % 2 != 0} {
+            throw [list MSGCHAN OPTION_FORMAT $args]\
+                "Options and values must be given in pairs, got \"$args\""
+        } else {
+            foreach {opt value} $args {
+                switch -exact -- $opt {
+                    -initialized {
+                        my variable Initialized
+                        set Initialized $value
+                    }
+                    -level {
+                        log::setlevel $value
+                    }
+                }
+            }
+        }
+    }
+    #----------------------------------------------------------------------
+    ##### autoObject.cget
+    #
+    # Support for the traditional Tk cget operator, which returns
+    # the values of the various object options. Pairs with configure.
+    #
+    # The base class supports the following options:
+    #
+    # * *-initialized*: returns the internal Initialized flag.
+    #               Initialized is set false on creation, set true on
+    #               *fromList*, *fromWire*, or *set*.
+    # * *-level*: returns the level of logging, per the *logger* package.
+    #               Possible values are : debug, info, notice, warn,
+    #               error, critical, alert, and emergency.  For details, see
+    # <https://core.tcl.tk/tcllib/doc/trunk/embedded/www/tcllib/files/modules/log/logger.html>).
+    #
+    # To extend this in a subclass, I recommend beginning by checking your own
+    # options first, then falling through on default to call *next* to allow
+    # the base case to handle the errors and its own options.  Also, the
+    # Options class variable should have your new options appended in the
+    # constructor as noted above.  E.g.:
+    #
+    #       method cget {option} {
+    #           switch -exact -- $option {
+    #               -myOption {
+    #                   return $MyOptionValue
+    #               }
+    #               default {
+    #                   return [next $option]
+    #               }
+    #           }
+    #       }
+    method cget {option} {
+        switch -exact -- $option {
+            -initialized {
+                return $Initialized
+            }
+            -level {
+                return [log::currentloglevel]
+            }
+            default {
+                my variable Options
+                throw [list MSGCHAN UNKNOWN_OPTION $option]\
+                    "unknown option, \"$option\", should be one of\
+                    [join $Options ,]"
+            }
+        }
     }
 
     #----------------------------------------------------------------------
     ##### autoObject.isInitialized
     #
-    # Status getter.  Initialized is set false on creation, true on fromList
-    # or fromWire.
+    # **DEPRECATED**  Status getter.  Initialized is set false on creation,
+    # set true on *fromList*, *fromWire*, or *set*.  Reading values from an
+    # uninitialized object will generate a warning.  If the object is only
+    # partially initialized before being read, the user is responsible for not
+    # using values of uninitialized fields.
+    #
+    # This method is from an early implementation before the cget/configure
+    # interface was added, and is not recommended for future design.
     method isInitialized {} {return $Initialized}
 
     #----------------------------------------------------------------------
@@ -344,7 +527,7 @@ oo::class create ::autoObject {
                 if {[info exists $args]} {
                     return [set $args]
                 } else {
-                    log::error "Requesting non-existant field in\
+                    log::error "Requesting non-existent field in\
                             [info object class [self object]] [self object]: \
                             \"$args\" not in \"[array names DataArray]\""
                 }
@@ -367,7 +550,7 @@ oo::class create ::autoObject {
                 } elseif {[info exists DataArray($key)]} {
                     lappend outL $DataArray($key)
                 } else {
-                    log::error "Requesting non-existant field in\
+                    log::error "Requesting non-existent field in\
                             [info object class [self object]] [self object]: \
                             \"$key\" not in \"[array names DataArray]\""
                 }
@@ -377,8 +560,65 @@ oo::class create ::autoObject {
     }
 
 
+    #----------------------------------------------------------------------
+    #### autoObject.getObj
+    #
+    # Special field getter that returns embedded data objects: accepts an args
+    # list of a single key, and returns the object or list of objects that
+    # comprise that key's field. If no key is provided, or if a list of keys is
+    # provided, throws an error (user almost certainly wanted *get*, not
+    # *getObj*).
+    #
+    # In general, if you don't know why you'd want the base object(s) instead
+    # of the value(s) of the object(s), you don't want to use this method.
+    #
+    # Warns on unknown keys or uninitialized object.
+    method getObj {args} {
+        set outL {}
+        if {![my isInitialized]} {
+            log::warn "Reading from uninitialized object [self object] of\
+                            type [info object class [self object]]"
+        }
+        # No keys: throw an error
+        if {$args == {}} {
+            error "No key provided to \"getObj\" for object [self object] of\
+                            type [info object class [self object]]"
+        # Single key: look up field, return object (if field is array, return
+        # list of objects).
+        } elseif {[llength $args] == 1} {
+            if {$args in $NameL} {
+                if {[llength $DataArray($args)] > 1} {
+                    set tempL {}
+                    foreach obj $DataArray($args) {
+                        lappend tempL $obj
+                    }
+                    return $tempL
+                } else {
+                    return $DataArray($args)
+                }
+            } elseif {[info exists DataArray($args)]} {
+                return $DataArray($args)
+            } else {
+                my variable $args
+                if {[info exists $args]} {
+                    return [set $args]
+                } else {
+                    log::error "Requesting non-existent field in\
+                            [info object class [self object]] [self object]: \
+                            \"$args\" not in \"[array names DataArray]\""
+                }
+            }
+        # Multiple keys: throw error
+        } else {
+            error "Too many keys provided to \"getObj\" for object [self object] of\
+                            type [info object class [self object]]"
+        }
+        return $outL
+    }
+
+
     #--------------------------------------------------------------------------
-    #### autoObject.set
+    #### autoObject.set *key/valueList*
     #
     # Simple mutator: accepts a list of key/value pairs, and for each key sets
     # the associated value to the supplied value.
@@ -387,15 +627,16 @@ oo::class create ::autoObject {
     # involved in *toList*/*fromList* operations.
     method set {args} {
         if {[llength $args] %2 == 1} {
-            error "Odd number of arguments for set - \
+            error "Odd number of arguments ([llength $args]) for set - \
                         set requires key/value pairs only."
         }
         foreach {key val} $args {
-            log::debug "$key: $val"
+            log::debug "setting $key: $val"
             if {$key eq "Initialized"} {
                 set Initialized $val
                 continue
-            } elseif {$key ni $NameL} {
+            }
+            if {$key ni $NameL} {
                 log::warn "Warning: trying to set non-standard field in \
                         [info object class [self object]] [self object]: \
                         $key <- $val"
@@ -449,8 +690,8 @@ oo::class create ::autoObject {
             } else {
                 $DataArray($key) set $val
             }
+            set Initialized true
         }
-        set Initialized true
     }
 
     #--------------------------------------------------------------------------
@@ -475,8 +716,8 @@ oo::class create ::autoObject {
     #### autoObject.createWidget
     #
     # Returns a Tk name of a frame that encloses a grid of name/value paired
-    # widgets.  Names are labels; values are whatever widget the value object
-    # has mixed in that responds to the createWidget method call.
+    # widgets.  Names are labels; values are whatever widget the field object
+    # has mixed in that responds to the *createWidget* method call.
     # Individual field widgets have the option to add a widget to a special
     # list of large widgets that show up at the bottom of the grid (BigWidgetL).
     method createWidget {wname} {
@@ -489,17 +730,15 @@ oo::class create ::autoObject {
         # @@@ TODO %%% llength NameL is not really the right number for
         # number of rows - doesn't take into account dropped reserved
         # fields or arrays/bitfields that take multiple rows.  Figure
-        # out a better count later.
-        if {[llength $NameL] > 20} {
-            set splitRow [expr {([llength $NameL] + 1)/ 2}]
-        } else {
-            # Even if we think we don't need to split, split at 35 to
-            # keep at the size of the monitor :-P
-            set splitRow 35
-        }
+        # out a better count later.  Cap it at 20 to ensure it fits on
+        # most monitors.
+        set splitRow [expr {min($WidgetTopRows, ([llength $NameL] + 1)/ 2)}]
         set colNum 1
+        # Iterate over all fields, creating pairs of labels (for name)
+        # and display widgets (for values).
         foreach key $NameL {
             set winName [string tolower $key]
+            # First, handle non-array fields
             if {[llength $DataArray($key)] == 1} {
                 grid [ttk::label $wname.l$winName -text $key] -column $colNum \
                         -row $row -sticky nsew
@@ -516,6 +755,8 @@ oo::class create ::autoObject {
                 grid $keyWidget -column [expr $colNum + 1] -row $row -sticky nsew
                 incr row
                 set FieldInfo($key,widget) $keyWidget
+            # Handle field arrays by creating one name label for all, and one
+            # value display widget per object in the array.
             } else {
                 grid [ttk::label $wname.l$winName -text $key] -column $colNum \
                         -row $row -sticky nsew
@@ -539,6 +780,9 @@ oo::class create ::autoObject {
                 }
                 set FieldInfo($key,widget) $widL
             }
+            # Columns over 20 items get unwieldy, and don't fit well on smaller
+            # monitors.
+            # @@@ TODO %%% make this value configurable & save in .ini file.
             if {$row > $splitRow} {
                 grid columnconfigure $wname $colNum -weight 1
                 grid columnconfigure $wname [expr $colNum + 1] -weight 4
@@ -576,6 +820,10 @@ oo::class create ::autoObject {
                 log::error "Input for [info object class [self object]] has an\
                         incorrect length: $dl; should be $BlockSize."
             # Variable size is allowed to be smaller but not larger
+            } elseif { $Variable_size > [llength $dataL]} {
+                log::error "Input for [info object class [self object]] has an\
+                        incorrect length: $dl; (max allowed is $BlockSize,\
+                        min is $Variable_size)."
             } else {
                 log::debug "Input for [info object class [self object]] is size\
                         $dl bytes (max allowed is $BlockSize, min is\
@@ -600,13 +848,16 @@ oo::class create ::autoObject {
             if {$offset >= $dl} {
                 break
             }
-            set byteL [lrange $dataL $offset [expr {$offset + $size - 1}]]
 
+            # Cut off the next field's data from the input list
+            set byteL [lrange $dataL $offset [expr {$offset + $size - 1}]]
             log::debug "Getting $name value from dataL($offset -\
                     [expr {$offset + $size - 1}]): $byteL"
+            # Single value field
             if {[llength $DataArray($name)] == 1} {
                 $DataArray($name) fromList $byteL
                 log::debug "$name set to [$DataArray($name) get]"
+            # Array field
             } else {
                 set bytesPerObj [expr {$size / $FieldInfo($name,arrcnt)}]
                 set offset 0
@@ -626,6 +877,8 @@ oo::class create ::autoObject {
                                         [$FieldInfo($name,tname) new {}]]
                     }
                 }
+                # For each object in the array, cut off the right number of
+                # bytes and feed it to them.
                 foreach obj $DataArray($name) {
                     set start $offset
                     incr offset $bytesPerObj
@@ -642,7 +895,7 @@ oo::class create ::autoObject {
     #--------------------------------------------------------------------------
     #### autoObject.toList
     #
-    # Getter to byte-list format, as required e.g. to send to a serial target.
+    # Getter to byte-list format (a list of numbers 0-255 representing bytes).
     # Gets the byte-list representations of the field objects in the order
     # defined by the defining array, collects them into a combined byte list,
     # and returns the list.
@@ -679,7 +932,7 @@ oo::class create ::autoObject {
             unset dataL
         }
 
-        # Convert to list of non-negative byte values (range 0-255)
+        # Just in case, convert to list of non-negative byte values (range 0-255)
         set retL {}
         foreach b $outL {
             lappend retL [expr {$b & 0xff}]
@@ -756,7 +1009,7 @@ oo::class create ::autoObject {
     ##### autoObject.fromByteArray
     #
     # From e.g. wire format or COM interface.  Converts from binary string to
-    # list format, then calls fromList.
+    # byte-list format, then calls fromList.
     method fromByteArray {byteArray} {
         binary scan $byteArray "cu*" byteList
         my fromList $byteList
@@ -766,7 +1019,7 @@ oo::class create ::autoObject {
     ##### autoObject.toByteArray
     #
     # To e.g. wire format or COM interface.  Calls toList, then converts from
-    # list format to binary string.
+    # byte-list format to binary string.
     method toByteArray {} {
         set byteList [my toList]
         set byteArray [binary format "c*" $byteList]
@@ -776,7 +1029,7 @@ oo::class create ::autoObject {
     #--------------------------------------------------------------------------
     ##### autoObject.SortByOffset
     #
-    # helper proc used to sort name list by field offset
+    # helper method used to sort name list by field offset
     method SortByOffset {arrayname a b} {
         if {$a eq "variable_length_object"} {return -1}
         if {$b eq "variable_length_object"} {return 1}
@@ -793,7 +1046,7 @@ oo::class create ::autoObject {
     #--------------------------------------------------------------------------
     ##### autoObject.IterField
     #
-    # helper proc used to forward commands to an autoData field if the field
+    # helper method used to forward commands to an autoData field if the field
     # is a list/array of objects.  Iterates across all the objects in the
     # list of that field, runs the desired command on each one, collects the
     # return values in a list, and returns that list.
@@ -806,4 +1059,4 @@ oo::class create ::autoObject {
 }
 
 }
-package provide autoObject $::AutoObject::version
+package provide autoObject $::AutoObject::AUTOOBJECT_VERSION

@@ -38,12 +38,22 @@ Pycco: <a href="https://pycco-docs.github.io/pycco/">https://pycco-docs.github.i
 <p>Use "pycco filename" to re-generate HTML documentation in ./docs .</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre><span class="nb">package</span> require TclOO
-<span class="nb">package</span> require logger
-
-<span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[namespace</span> exists <span class="o">::</span>AutoObject<span class="k">]</span> <span class="k">}</span> <span class="k">{</span>
+      <div class="highlight"><pre><span></span><span class="nb">package</span> require TclOO
+<span class="nb">package</span> require logger</pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-1'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-1'>#</a>
+      </div>
+      <p>Exclude if somehow sourced more than once.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[namespace</span> exists <span class="o">::</span>AutoObject<span class="k">]</span> <span class="k">}</span> <span class="k">{</span>
     <span class="k">namespace</span> eval <span class="o">::</span>AutoObject <span class="k">{</span>
-        <span class="k">variable</span> AUTOOBJECT_VERSION <span class="mf">0.8</span>
+        <span class="k">variable</span> AUTOOBJECT_VERSION <span class="mf">0.11</span>
         <span class="nv">logger</span><span class="o">::</span>init <span class="o">::</span>autoObject
         <span class="nv">logger</span><span class="o">::</span>import <span class="o">-</span>all <span class="o">-</span>namespace <span class="o">::</span>autoObject::log <span class="o">::</span>autoObject
         <span class="o">::</span><span class="nv">autoObject</span><span class="o">::</span>log::setlevel warn
@@ -53,10 +63,10 @@ Pycco: <a href="https://pycco-docs.github.io/pycco/">https://pycco-docs.github.i
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-1'>
+  <div class='section' id='section-2'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-1'>#</a>
+        <a class='octothorpe' href='#section-2'>#</a>
       </div>
       <hr />
 <h1>autoObject base class</h1>
@@ -79,11 +89,20 @@ extended by subclasses:</p>
 <li><em>$object</em> toList</li>
 <li><em>$object</em> fromByteArray <em>binaryString</em></li>
 <li><em>$object</em> toByteArray</li>
-<li><em>$object</em> isInitialized</li>
 <li><em>$object</em> follow</li>
 <li><em>$object</em> createWidget</li>
 </ul>
-<p>There are two methods used for internal purposes only:</p>
+<p>The base class also supports the Tk-style configure/cget interface for
+options.  The base class options are only <em>-initialized</em>, which indicates if
+this object has had any fields set since creation, and <em>-level</em>, which sets
+the level of log messages (per the <em>logger</em> package,
+<a href="https://core.tcl.tk/tcllib/doc/trunk/embedded/www/tcllib/files/modules/log/logger.html">https://core.tcl.tk/tcllib/doc/trunk/embedded/www/tcllib/files/modules/log/logger.html</a>).
+Other options can be added by extension.</p>
+<ul>
+<li><em>$object</em> configure <em>option</em> <em>value</em> ?<em>option </em>value* ...?</li>
+<li><em>$object</em> cget ?<em>option</em>?</li>
+</ul>
+<p>The base class also has two non-public methods used for internal purposes only:</p>
 <ul>
 <li>SortByOffset <em>arrayName</em> <em>a</em> <em>b</em></li>
 <li>IterField <em>fieldName</em> <em>args</em></li>
@@ -96,14 +115,17 @@ extended by subclasses:</p>
     <span class="k">variable</span> FieldInfo
     <span class="k">variable</span> Initialized
     <span class="k">variable</span> NameL
-    <span class="k">variable</span> Variable_size</pre></div>
+    <span class="k">variable</span> Variable_size
+    <span class="k">variable</span> WidgetTopRows
+    <span class="k">variable</span> WidgetBotCols
+    <span class="k">variable</span> Options</pre></div>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-2'>
+  <div class='section' id='section-3'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-2'>#</a>
+        <a class='octothorpe' href='#section-3'>#</a>
       </div>
       <hr />
 <h2>autoObject constructor</h2>
@@ -151,14 +173,17 @@ autoObject will not.</p>
         <span class="k">array</span> set definingArr <span class="nv">$defineL</span>
         <span class="k">set</span> BlockSize <span class="mi">0</span>
         <span class="k">set</span> Variable_size <span class="mi">0</span>
-        <span class="k">set</span> Initialized false</pre></div>
+        <span class="k">set</span> Initialized false
+        <span class="k">set</span> WidgetTopRows <span class="mi">20</span>
+        <span class="k">set</span> WidgetBotCols <span class="mi">4</span>
+        <span class="k">set</span> Options <span class="k">{</span><span class="nv">-initialized</span> <span class="o">-</span>level<span class="k">}</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-3'>
+  <div class='section' id='section-4'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-3'>#</a>
+        <a class='octothorpe' href='#section-4'>#</a>
       </div>
       <p>There are multiple times we'll want the list of field names sorted by
 the field offset, so we do the sort once and save it for the future.</p>
@@ -169,10 +194,10 @@ the field offset, so we do the sort once and save it for the future.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-4'>
+  <div class='section' id='section-5'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-4'>#</a>
+        <a class='octothorpe' href='#section-5'>#</a>
       </div>
       <p>As we read the field list to initialize the fields, parse the
 sizes and offsets to validate the input.  There should be no
@@ -183,10 +208,10 @@ missing bytes in the structure.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-5'>
+  <div class='section' id='section-6'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-5'>#</a>
+        <a class='octothorpe' href='#section-6'>#</a>
       </div>
       <p>Take the special token "variable_length_object" out of the
 NameL - we don't want to treat it like a normal field.</p>
@@ -200,10 +225,10 @@ NameL - we don't want to treat it like a normal field.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-6'>
+  <div class='section' id='section-7'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-6'>#</a>
+        <a class='octothorpe' href='#section-7'>#</a>
       </div>
       <p>For normal fields, call the <em>addField</em> method and update the
 current known size of the object based on the result.</p>
@@ -214,16 +239,26 @@ current known size of the object based on the result.</p>
                 <span class="k">set</span> BlockSize <span class="k">[expr</span> <span class="k">{</span><span class="nv">$BlockSize</span> <span class="o">+</span> <span class="nv">$FieldInfo</span><span class="k">(</span><span class="nv">$field</span><span class="err">,</span><span class="nv">size</span><span class="k">)}]</span>
             <span class="k">}</span>
         <span class="k">}</span>
+    <span class="k">}</span>
+
+    <span class="nv">destructor</span> <span class="k">{</span>
+        <span class="nv">log</span><span class="o">::</span>debug <span class="s2">&quot;destroying [self]&quot;</span>
+        <span class="k">foreach</span> key <span class="nv">$NameL</span> <span class="k">{</span>
+            <span class="k">foreach</span> obj <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$key</span><span class="k">)</span> <span class="k">{</span>
+                <span class="nv">$obj</span> <span class="nv">destroy</span>
+            <span class="k">}</span>
+        <span class="k">}</span>
     <span class="k">}</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-7'>
+  <div class='section' id='section-8'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-7'>#</a>
+        <a class='octothorpe' href='#section-8'>#</a>
       </div>
-      <p>To allow subclassing operations to use the main autoObject engine to
+      <hr />
+<p>To allow subclassing operations to use the main autoObject engine to
 dynamically add new fields to an existing object, the <em>addField</em> engine
 is separately exposed.  Normally this is only called by the constructor,
 and it should <strong><em>NEVER</em></strong> be called lightly.  Adding fields without
@@ -244,13 +279,12 @@ haven't thought of yet.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-8'>
+  <div class='section' id='section-9'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-8'>#</a>
+        <a class='octothorpe' href='#section-9'>#</a>
       </div>
-      <hr />
-<h4>autoObject.addField</h4>
+      <h4>autoObject.addField</h4>
 <p><em>addField</em> takes the defining list-of-lists and a field name within
 that list as inputs.  It creates all of the data objects for that field,
 placing them in the FieldData array, and defines all of the FieldInfo
@@ -270,10 +304,10 @@ values that allow the data operations to be carried out.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-9'>
+  <div class='section' id='section-10'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-9'>#</a>
+        <a class='octothorpe' href='#section-10'>#</a>
       </div>
       <p>First, find the data type corresponding to the name.  Start by
 parsing out any array syntax.  Then look in various namespaces to
@@ -282,27 +316,11 @@ find a definition of the type.</p>
     <div class='code'>
       <div class="highlight"><pre>        <span class="k">set</span> tname <span class="s2">&quot;[lindex $fieldList 2]&quot;</span>
         <span class="k">set</span> isarray <span class="k">[</span><span class="nb">regexp</span> <span class="k">{(</span><span class="nv">.</span><span class="o">+</span><span class="k">)</span><span class="err">\</span><span class="k">[([</span><span class="nv">0-9</span><span class="k">]</span><span class="o">+</span><span class="k">)</span><span class="err">\</span><span class="k">]}</span> <span class="nv">$tname</span> <span class="o">-&gt;</span> basename arrcount<span class="k">]</span>
-        <span class="k">if</span> <span class="nv">$isarray</span> <span class="k">{</span>
+        <span class="k">if</span> <span class="k">{</span><span class="nv">$isarray</span><span class="k">}</span> <span class="k">{</span>
             <span class="k">set</span> tname <span class="nv">$basename</span>
         <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
             <span class="k">set</span> arrcount <span class="mi">0</span>
-        <span class="k">}</span>
-        <span class="k">if</span> <span class="k">{</span><span class="s2">&quot;::AutoObject::$tname&quot;</span> <span class="nv">in</span> <span class="err">\</span>
-                <span class="k">[</span><span class="nb">info</span> class instances oo::class <span class="o">::</span>AutoObject::<span class="o">*</span><span class="k">]}</span> <span class="k">{</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-10'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-10'>#</a>
-      </div>
-      <p>Case 1: Found as a type declared in the appropriate namespace</p>
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>            <span class="k">set</span> tname <span class="s2">&quot;::AutoObject::$tname&quot;</span>
-        <span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">lsearch</span> <span class="k">[</span><span class="nb">info</span> class instances oo::class<span class="k">]</span> <span class="s2">&quot;*$tname&quot;</span><span class="k">]</span> <span class="err">\</span>
-                    <span class="o">!=</span> <span class="nv">-1</span><span class="k">}</span> <span class="k">{</span></pre></div>
+        <span class="k">}</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -311,18 +329,12 @@ find a definition of the type.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-11'>#</a>
       </div>
-      <p>Case 2: Found a class defined in a different namespace; we either
-try it or die in error, so we may as well keep going and try it.</p>
+      <p><strong>Case 1:</strong> Found as a type declared in the appropriate namespace</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>            <span class="nv">log</span><span class="o">::</span>debug <span class="s2">&quot;class list: \</span>
-<span class="s2">                        [info class instances oo::class ::AutoObject::*]&quot;</span>
-            <span class="k">set</span> msg <span class="s2">&quot;No $tname in expected ::AutoObject:: namespace. \</span>
-<span class="s2">                        Found %s and will try it.&quot;</span>
-            <span class="k">set</span> tname <span class="k">[</span><span class="nb">lindex</span> <span class="k">[</span><span class="nb">info</span> class instances oo::class<span class="k">]</span> <span class="err">\</span>
-                       <span class="k">[</span><span class="nb">lsearch</span> <span class="k">[</span><span class="nb">info</span> class instances oo::class<span class="k">]</span> <span class="s2">&quot;*$tname&quot;</span><span class="k">]]</span>
-            <span class="nv">log</span><span class="o">::</span>info <span class="k">[</span><span class="nb">format</span> <span class="nv">$msg</span> <span class="nv">$tname</span><span class="k">]</span>
-        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span></pre></div>
+      <div class="highlight"><pre>        <span class="k">if</span> <span class="k">{</span><span class="s2">&quot;::AutoObject::$tname&quot;</span> <span class="nv">in</span> <span class="err">\</span>
+                <span class="k">[</span><span class="nb">info</span> class instances oo::class <span class="o">::</span>AutoObject::<span class="o">*</span><span class="k">]}</span> <span class="k">{</span>
+            <span class="k">set</span> tname <span class="s2">&quot;::AutoObject::$tname&quot;</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -331,10 +343,32 @@ try it or die in error, so we may as well keep going and try it.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-12'>#</a>
       </div>
-      <p>Case 3: Can't find a class with that name.  Error out.</p>
+      <p><strong>Case 2:</strong> Found a class defined in a different namespace; we either
+try it or die in error, so we may as well keep going and try it.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>            <span class="nv">log</span><span class="o">::</span>error <span class="s2">&quot;Unknown type requested: $tname&quot;</span>
+      <div class="highlight"><pre>        <span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">lsearch</span> <span class="k">[</span><span class="nb">info</span> class instances oo::class<span class="k">]</span> <span class="s2">&quot;*$tname&quot;</span><span class="k">]</span> <span class="err">\</span>
+                    <span class="o">!=</span> <span class="nv">-1</span><span class="k">}</span> <span class="k">{</span>
+            <span class="nv">log</span><span class="o">::</span>debug <span class="s2">&quot;class list: \</span>
+<span class="s2">                        [info class instances oo::class ::AutoObject::*]&quot;</span>
+            <span class="k">set</span> msg <span class="s2">&quot;No $tname in expected ::AutoObject:: namespace. \</span>
+<span class="s2">                        Found %s and will try it.&quot;</span>
+            <span class="k">set</span> tname <span class="k">[</span><span class="nb">lindex</span> <span class="k">[</span><span class="nb">info</span> class instances oo::class<span class="k">]</span> <span class="err">\</span>
+                       <span class="k">[</span><span class="nb">lsearch</span> <span class="k">[</span><span class="nb">info</span> class instances oo::class<span class="k">]</span> <span class="s2">&quot;*$tname&quot;</span><span class="k">]]</span>
+            <span class="nv">log</span><span class="o">::</span>info <span class="k">[</span><span class="nb">format</span> <span class="nv">$msg</span> <span class="nv">$tname</span><span class="k">]</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-13'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-13'>#</a>
+      </div>
+      <p><strong>Case 3:</strong> Can't find a class with that name.  Error out.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="nv">log</span><span class="o">::</span>error <span class="s2">&quot;Unknown type requested: $tname&quot;</span>
             <span class="nv">log</span><span class="o">::</span>error <span class="s2">&quot;List of autoObject classes: \</span>
 <span class="s2">                        [info class instances oo::class ::AutoObject::*]&quot;</span>
             <span class="nv">log</span><span class="o">::</span>error <span class="s2">&quot;List of other known classes: \</span>
@@ -346,10 +380,10 @@ try it or die in error, so we may as well keep going and try it.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-13'>
+  <div class='section' id='section-14'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-13'>#</a>
+        <a class='octothorpe' href='#section-14'>#</a>
       </div>
       <p>Second, unpack &amp; store the rest of the defining information.</p>
     </div>
@@ -367,10 +401,10 @@ try it or die in error, so we may as well keep going and try it.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-14'>
+  <div class='section' id='section-15'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-14'>#</a>
+        <a class='octothorpe' href='#section-15'>#</a>
       </div>
       <p>Third, attempt to determine the widget type, if one is defined.</p>
     </div>
@@ -378,22 +412,7 @@ try it or die in error, so we may as well keep going and try it.</p>
       <div class="highlight"><pre>        <span class="k">if</span> <span class="k">{([</span><span class="nb">llength</span> <span class="nv">$fieldList</span><span class="k">]</span> <span class="o">&gt;</span> <span class="nv">5</span><span class="k">)</span> <span class="o">&amp;&amp;</span> <span class="k">([</span><span class="nb">lindex</span> <span class="nv">$fieldList</span> <span class="mi">5</span><span class="k">]</span> <span class="nv">ne</span> <span class="k">{})}</span> <span class="k">{</span>
             <span class="k">set</span> wname <span class="k">[</span><span class="nb">lindex</span> <span class="nv">$fieldList</span> <span class="mi">5</span><span class="k">]</span>
             <span class="k">if</span> <span class="k">{</span><span class="nv">$wname</span> <span class="nv">eq</span> <span class="s2">&quot;self&quot;</span><span class="k">}</span> <span class="k">{</span>
-                <span class="k">set</span> widgetName <span class="s2">&quot;self&quot;</span>
-            <span class="k">}</span> <span class="k">elseif</span> <span class="k">{</span><span class="s2">&quot;::AutoObject::$wname&quot;</span> <span class="nv">in</span> <span class="err">\</span>
-                        <span class="k">[</span><span class="nb">info</span> class instances oo::class <span class="o">::</span>AutoObject::<span class="o">*</span><span class="k">]}</span> <span class="k">{</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-15'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-15'>#</a>
-      </div>
-      <p>Case 1: Found widget as a type declared in the appropriate namespace</p>
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>                <span class="k">set</span> widgetName <span class="s2">&quot;::AutoObject::$wname&quot;</span>
-            <span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">lsearch</span> <span class="k">[</span><span class="nb">info</span> class instances oo::class<span class="k">]</span> <span class="s2">&quot;*$wname&quot;</span><span class="k">]</span> <span class="o">!=</span> <span class="nv">-1</span><span class="k">}</span> <span class="k">{</span></pre></div>
+                <span class="k">set</span> widgetName <span class="s2">&quot;self&quot;</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -402,16 +421,12 @@ try it or die in error, so we may as well keep going and try it.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-16'>#</a>
       </div>
-      <p>Case 2: Found something not in the right namespace; we either try it
-or die in error, so we may as well keep going and try it.</p>
+      <p><strong>Case 1:</strong> Found widget as a type declared in the appropriate namespace</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>                <span class="nv">log</span><span class="o">::</span>debug <span class="s2">&quot;class list: [info class instances oo::class ::AutoObject::*]&quot;</span>
-                <span class="k">set</span> msg <span class="s2">&quot;No $wname in expected namespace.  Found %s and will try it.&quot;</span>
-                <span class="k">set</span> widgetName <span class="k">[</span><span class="nb">lindex</span> <span class="k">[</span><span class="nb">info</span> class instances oo::class<span class="k">]</span> <span class="err">\</span>
-                           <span class="k">[</span><span class="nb">lsearch</span> <span class="k">[</span><span class="nb">info</span> class instances oo::class<span class="k">]</span> <span class="s2">&quot;*$wname&quot;</span><span class="k">]]</span>
-                <span class="nv">log</span><span class="o">::</span>info <span class="k">[</span><span class="nb">format</span> <span class="nv">$msg</span> <span class="nv">$widgetName</span><span class="k">]</span>
-            <span class="k">}</span> <span class="k">else</span> <span class="k">{</span></pre></div>
+      <div class="highlight"><pre>            <span class="k">}</span> <span class="k">elseif</span> <span class="k">{</span><span class="s2">&quot;::AutoObject::$wname&quot;</span> <span class="nv">in</span> <span class="err">\</span>
+                        <span class="k">[</span><span class="nb">info</span> class instances oo::class <span class="o">::</span>AutoObject::<span class="o">*</span><span class="k">]}</span> <span class="k">{</span>
+                <span class="k">set</span> widgetName <span class="s2">&quot;::AutoObject::$wname&quot;</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -420,10 +435,29 @@ or die in error, so we may as well keep going and try it.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-17'>#</a>
       </div>
-      <p>Case 3: Can't find a widget by that name.  Error out.</p>
+      <p><strong>Case 2:</strong> Found something not in the right namespace; we either try it
+or die in error, so we may as well keep going and try it.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>                <span class="nv">log</span><span class="o">::</span>error <span class="s2">&quot;Unknown type requested: $wname&quot;</span>
+      <div class="highlight"><pre>            <span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">lsearch</span> <span class="k">[</span><span class="nb">info</span> class instances oo::class<span class="k">]</span> <span class="s2">&quot;*$wname&quot;</span><span class="k">]</span> <span class="o">!=</span> <span class="nv">-1</span><span class="k">}</span> <span class="k">{</span>
+                <span class="nv">log</span><span class="o">::</span>debug <span class="s2">&quot;class list: [info class instances oo::class ::AutoObject::*]&quot;</span>
+                <span class="k">set</span> msg <span class="s2">&quot;No $wname in expected namespace.  Found %s and will try it.&quot;</span>
+                <span class="k">set</span> widgetName <span class="k">[</span><span class="nb">lindex</span> <span class="k">[</span><span class="nb">info</span> class instances oo::class<span class="k">]</span> <span class="err">\</span>
+                           <span class="k">[</span><span class="nb">lsearch</span> <span class="k">[</span><span class="nb">info</span> class instances oo::class<span class="k">]</span> <span class="s2">&quot;*$wname&quot;</span><span class="k">]]</span>
+                <span class="nv">log</span><span class="o">::</span>info <span class="k">[</span><span class="nb">format</span> <span class="nv">$msg</span> <span class="nv">$widgetName</span><span class="k">]</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-18'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-18'>#</a>
+      </div>
+      <p><strong>Case 3:</strong> Can't find a widget by that name.  Error out.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>            <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+                <span class="nv">log</span><span class="o">::</span>error <span class="s2">&quot;Unknown type requested: $wname&quot;</span>
                 <span class="nv">log</span><span class="o">::</span>error <span class="s2">&quot;List of autoObject classes: [info class instances oo::class ::AutoObject::*]&quot;</span>
                 <span class="nv">log</span><span class="o">::</span>error <span class="s2">&quot;List of classes: [info class instances oo::class]&quot;</span>
                 <span class="k">error</span> <span class="s2">&quot;Unknown type requested: $wname&quot;</span>
@@ -434,10 +468,10 @@ or die in error, so we may as well keep going and try it.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-18'>
+  <div class='section' id='section-19'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-18'>#</a>
+        <a class='octothorpe' href='#section-19'>#</a>
       </div>
       <p>Finally, create the field objects within the container object.
 Start by checking to see if field is an array of objects.</p>
@@ -447,12 +481,12 @@ Start by checking to see if field is an array of objects.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-19'>
+  <div class='section' id='section-20'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-19'>#</a>
+        <a class='octothorpe' href='#section-20'>#</a>
       </div>
-      <p>It's an array.  Validate that the initialization data size is
+      <p>It's an array.  Validate that the total specified data size is
 an integral number of bytes per entry.</p>
     </div>
     <div class='code'>
@@ -464,14 +498,14 @@ an integral number of bytes per entry.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-20'>
+  <div class='section' id='section-21'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-20'>#</a>
+        <a class='octothorpe' href='#section-21'>#</a>
       </div>
-      <p>If we weren't given an exact list of initializer data,
-assume what we were given is for one element.  Replicate
-it to cover all elements.</p>
+      <p>If we weren't given an exact list of initializer data, one
+entry per element, assume what we were given is for one element.
+Replicate it to cover all elements.</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre>            <span class="k">if</span> <span class="k">{([</span><span class="nb">llength</span> <span class="nv">$initData</span><span class="k">]</span> <span class="o">!=</span> <span class="nv">$arrcount</span><span class="k">)</span> <span class="o">&amp;&amp;</span> <span class="k">(</span><span class="nv">$initData</span> <span class="nv">ne</span> <span class="k">{})}</span> <span class="k">{</span>
@@ -481,10 +515,10 @@ it to cover all elements.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-21'>
+  <div class='section' id='section-22'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-21'>#</a>
+        <a class='octothorpe' href='#section-22'>#</a>
       </div>
       <p>Create <em>arrcount</em> new objects of the specified type and
 store them in a list in this field.</p>
@@ -497,15 +531,18 @@ store them in a list in this field.</p>
 <span class="s2">                           $::errorInfo&quot;</span>
                 <span class="k">}</span>
                 <span class="k">if</span> <span class="k">{</span><span class="nv">$initData</span> <span class="nv">ne</span> <span class="k">{}}</span> <span class="k">{</span>
-                    <span class="nv">$obj</span> <span class="k">set</span> <span class="k">[</span><span class="nb">lindex</span> <span class="nv">$initData</span> <span class="nv">$idx</span><span class="k">]</span>
+                    <span class="k">if</span> <span class="k">{[catch</span> <span class="k">{</span><span class="nv">$obj</span> <span class="k">set</span> <span class="k">[</span><span class="nb">lindex</span> <span class="nv">$initData</span> <span class="nv">$idx</span><span class="k">]}</span> result<span class="k">]}</span> <span class="k">{</span>
+                        <span class="k">error</span> <span class="s2">&quot;Initializing field $field with a new $tname\</span>
+<span class="s2">                               to index $idx of $initData with result $result&quot;</span>
+                    <span class="k">}</span>
                 <span class="k">}</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-22'>
+  <div class='section' id='section-23'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-22'>#</a>
+        <a class='octothorpe' href='#section-23'>#</a>
       </div>
       <p>Mix in the UI class for each object</p>
     </div>
@@ -518,31 +555,20 @@ store them in a list in this field.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-23'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-23'>#</a>
-      </div>
-      <p>Forward the field name as a method name to a special
-method that iterates across the list of objects in the field,
-runs whatever method of the item the user wants on each one,
-and collects the results in a list that is returned.</p>
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>            <span class="nv">oo</span><span class="o">::</span>objdefine <span class="k">[</span><span class="nv">self</span><span class="k">]</span> forward <span class="nv">$field</span> my IterField <span class="nv">$field</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
   <div class='section' id='section-24'>
     <div class='docs'>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-24'>#</a>
       </div>
-      <p>Export the forwarded method so users can call it.</p>
+      <p>Forward the field name as a method name to a special
+method that iterates across the list of objects in the field,
+runs whatever method of the item the user wants on each one,
+and collects the results in a list that is returned, and
+export the forwarded method so users can call it.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>            <span class="nv">oo</span><span class="o">::</span>objdefine <span class="k">[</span><span class="nv">self</span><span class="k">]</span> export <span class="nv">$field</span>
-        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span></pre></div>
+      <div class="highlight"><pre>            <span class="nv">oo</span><span class="o">::</span>objdefine <span class="k">[</span><span class="nv">self</span><span class="k">]</span> forward <span class="nv">$field</span> my IterField <span class="nv">$field</span>
+            <span class="nv">oo</span><span class="o">::</span>objdefine <span class="k">[</span><span class="nv">self</span><span class="k">]</span> export <span class="nv">$field</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -554,7 +580,8 @@ and collects the results in a list that is returned.</p>
       <p>It's a single object, not an array.  Just create &amp; init it.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>            <span class="k">if</span> <span class="k">[catch</span> <span class="k">{set</span> DataArray<span class="k">(</span><span class="nv">$field</span><span class="k">)</span> <span class="k">[</span><span class="nv">$tname</span> <span class="nv">new</span> <span class="nv">$typeData</span><span class="k">]}]</span> <span class="k">{</span>
+      <div class="highlight"><pre>        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="k">if</span> <span class="k">[catch</span> <span class="k">{set</span> DataArray<span class="k">(</span><span class="nv">$field</span><span class="k">)</span> <span class="k">[</span><span class="nv">$tname</span> <span class="nv">new</span> <span class="nv">$typeData</span><span class="k">]}]</span> <span class="k">{</span>
                 <span class="k">error</span> <span class="s2">&quot;Failed to create new object of type\</span>
 <span class="s2">                       $tname for field $field: $::errorInfo&quot;</span>
             <span class="k">}</span>
@@ -584,10 +611,14 @@ and collects the results in a list that is returned.</p>
         <a class='octothorpe' href='#section-27'>#</a>
       </div>
       <p>Forward the field name as a method name to the object that
-the field is composed of.</p>
+the field is composed of, and export the forwarded method
+so users can call it.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>            <span class="nv">oo</span><span class="o">::</span>objdefine <span class="k">[</span><span class="nv">self</span><span class="k">]</span> forward <span class="nv">$field</span> <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$field</span><span class="k">)</span></pre></div>
+      <div class="highlight"><pre>            <span class="nv">oo</span><span class="o">::</span>objdefine <span class="k">[</span><span class="nv">self</span><span class="k">]</span> forward <span class="nv">$field</span> <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$field</span><span class="k">)</span>
+            <span class="nv">oo</span><span class="o">::</span>objdefine <span class="k">[</span><span class="nv">self</span><span class="k">]</span> export <span class="nv">$field</span>
+        <span class="k">}</span>
+    <span class="k">}</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -596,10 +627,63 @@ the field is composed of.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-28'>#</a>
       </div>
-      <p>Export the forwarded method so users can call it.</p>
+      <hr />
+<h4>autoObject.configure</h4>
+<p>Support for the traditional Tk configure operator, which can change
+the values of the various object options. Pairs with cget.</p>
+<p>The base class supports the following options:</p>
+<ul>
+<li><em>-initialized</em>: sets the internal Initialized flag.
+          Initialized is set false on creation, set true on
+          <em>fromList</em>, <em>fromWire</em>, or <em>set</em>.  This only needs
+          to be overridden to allow a object with all fields
+          still at default values to be serialized.</li>
+<li><em>-level</em>: sets the level of logging, per the <em>logger</em> package.
+          Possible values are : debug, info, notice, warn,
+          error, critical, alert, and emergency.  Nothing
+          above error is used in this package.  For details, see
+<a href="https://core.tcl.tk/tcllib/doc/trunk/embedded/www/tcllib/files/modules/log/logger.html">https://core.tcl.tk/tcllib/doc/trunk/embedded/www/tcllib/files/modules/log/logger.html</a>).</li>
+</ul>
+<p>To extend this in a subclass, I recommend beginning by calling <em>next</em> to
+allow the base case to handle the errors and its own options, then
+(assuming no errors) handling your own options.  E.g.:</p>
+<pre><code>  method configure {args} {
+      next {*}$args
+      foreach {opt value} $args {
+          switch -exact -- $opt {
+              -myOption {
+                  # does things
+              }
+          }
+      }
+  }
+</code></pre>
+<p>Also, note that the Options base class variable should have your new
+options appended in the constructor.  E.g.:</p>
+<pre><code>  my variable Options
+  lappend Options "-myOption"
+</code></pre>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>            <span class="nv">oo</span><span class="o">::</span>objdefine <span class="k">[</span><span class="nv">self</span><span class="k">]</span> export <span class="nv">$field</span>
+      <div class="highlight"><pre>    <span class="nv">method</span> configure <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">if</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$args</span><span class="k">]</span> <span class="o">==</span> <span class="nv">0</span><span class="k">}</span> <span class="k">{</span>
+            <span class="nv">my</span> variable Options
+            <span class="k">return</span> <span class="nv">$Options</span>
+        <span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$args</span><span class="k">]</span> <span class="o">%</span> <span class="nv">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="k">}</span> <span class="k">{</span>
+            <span class="nv">throw</span> <span class="k">[</span><span class="nb">list</span> MSGCHAN OPTION_FORMAT <span class="nv">$args</span><span class="k">]</span><span class="err">\</span>
+                <span class="s2">&quot;Options and values must be given in pairs, got \&quot;$args\&quot;&quot;</span>
+        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="k">foreach</span> <span class="k">{</span><span class="nv">opt</span> value<span class="k">}</span> <span class="nv">$args</span> <span class="k">{</span>
+                <span class="k">switch</span> <span class="o">-</span>exact <span class="o">--</span> <span class="nv">$opt</span> <span class="k">{</span>
+                    <span class="nv">-initialized</span> <span class="k">{</span>
+                        <span class="nv">my</span> variable Initialized
+                        <span class="k">set</span> Initialized <span class="nv">$value</span>
+                    <span class="k">}</span>
+                    <span class="nv">-level</span> <span class="k">{</span>
+                        <span class="nv">log</span><span class="o">::</span>setlevel <span class="nv">$value</span>
+                    <span class="k">}</span>
+                <span class="k">}</span>
+            <span class="k">}</span>
         <span class="k">}</span>
     <span class="k">}</span></pre></div>
     </div>
@@ -611,12 +695,53 @@ the field is composed of.</p>
         <a class='octothorpe' href='#section-29'>#</a>
       </div>
       <hr />
-<h4>autoObject.isInitialized</h4>
-<p>Status getter.  Initialized is set false on creation, set true on
-<em>fromList</em>, <em>fromWire</em>, or <em>set</em>.</p>
+<h4>autoObject.cget</h4>
+<p>Support for the traditional Tk cget operator, which returns
+the values of the various object options. Pairs with configure.</p>
+<p>The base class supports the following options:</p>
+<ul>
+<li><em>-initialized</em>: returns the internal Initialized flag.
+              Initialized is set false on creation, set true on
+              <em>fromList</em>, <em>fromWire</em>, or <em>set</em>.</li>
+<li><em>-level</em>: returns the level of logging, per the <em>logger</em> package.
+              Possible values are : debug, info, notice, warn,
+              error, critical, alert, and emergency.  For details, see
+<a href="https://core.tcl.tk/tcllib/doc/trunk/embedded/www/tcllib/files/modules/log/logger.html">https://core.tcl.tk/tcllib/doc/trunk/embedded/www/tcllib/files/modules/log/logger.html</a>).</li>
+</ul>
+<p>To extend this in a subclass, I recommend beginning by checking your own
+options first, then falling through on default to call <em>next</em> to allow
+the base case to handle the errors and its own options.  Also, the
+Options class variable should have your new options appended in the
+constructor as noted above.  E.g.:</p>
+<pre><code>  method cget {option} {
+      switch -exact -- $option {
+          -myOption {
+              return $MyOptionValue
+          }
+          default {
+              return [next $option]
+          }
+      }
+  }
+</code></pre>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>    <span class="nv">method</span> isInitialized <span class="k">{}</span> <span class="k">{return</span> <span class="nv">$Initialized</span><span class="k">}</span></pre></div>
+      <div class="highlight"><pre>    <span class="nv">method</span> cget <span class="k">{</span><span class="nv">option</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">switch</span> <span class="o">-</span>exact <span class="o">--</span> <span class="nv">$option</span> <span class="k">{</span>
+            <span class="nv">-initialized</span> <span class="k">{</span>
+                <span class="k">return</span> <span class="nv">$Initialized</span>
+            <span class="k">}</span>
+            <span class="nv">-level</span> <span class="k">{</span>
+                <span class="k">return</span> <span class="k">[</span><span class="nv">log</span><span class="o">::</span>currentloglevel<span class="k">]</span>
+            <span class="k">}</span>
+            <span class="nv">default</span> <span class="k">{</span>
+                <span class="nv">my</span> variable Options
+                <span class="nv">throw</span> <span class="k">[</span><span class="nb">list</span> MSGCHAN UNKNOWN_OPTION <span class="nv">$option</span><span class="k">]</span><span class="err">\</span>
+                    <span class="s2">&quot;unknown option, \&quot;$option\&quot;, should be one of\</span>
+<span class="s2">                    [join $Options ,]&quot;</span>
+            <span class="k">}</span>
+        <span class="k">}</span>
+    <span class="k">}</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -624,6 +749,26 @@ the field is composed of.</p>
     <div class='docs'>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-30'>#</a>
+      </div>
+      <hr />
+<h4>autoObject.isInitialized</h4>
+<p><strong>DEPRECATED</strong>  Status getter.  Initialized is set false on creation,
+set true on <em>fromList</em>, <em>fromWire</em>, or <em>set</em>.  Reading values from an
+uninitialized object will generate a warning.  If the object is only
+partially initialized before being read, the user is responsible for not
+using values of uninitialized fields.</p>
+<p>This method is from an early implementation before the cget/configure
+interface was added, and is not recommended for future design.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nv">method</span> isInitialized <span class="k">{}</span> <span class="k">{return</span> <span class="nv">$Initialized</span><span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-31'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-31'>#</a>
       </div>
       <hr />
 <h3>autoObject.get</h3>
@@ -643,10 +788,10 @@ Warns on unknown keys or uninitialized object.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-31'>
+  <div class='section' id='section-32'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-31'>#</a>
+        <a class='octothorpe' href='#section-32'>#</a>
       </div>
       <p>No keys: return name/value pairs for all defined fields.</p>
     </div>
@@ -666,10 +811,10 @@ Warns on unknown keys or uninitialized object.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-32'>
+  <div class='section' id='section-33'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-32'>#</a>
+        <a class='octothorpe' href='#section-33'>#</a>
       </div>
       <p>Single key: look up field, return value (if field is array, return list)</p>
     </div>
@@ -700,10 +845,10 @@ Warns on unknown keys or uninitialized object.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-33'>
+  <div class='section' id='section-34'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-33'>#</a>
+        <a class='octothorpe' href='#section-34'>#</a>
       </div>
       <p>Multiple keys: return list of values in order of keys provided.
 If a field is an array, the list of values will be nested as a single
@@ -736,13 +881,105 @@ item in the output list.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-34'>
+  <div class='section' id='section-35'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-34'>#</a>
+        <a class='octothorpe' href='#section-35'>#</a>
       </div>
       <hr />
-<h3>autoObject.set</h3>
+<h3>autoObject.getObj</h3>
+<p>Special field getter that returns embedded data objects: accepts an args
+list of a single key, and returns the object or list of objects that
+comprise that key's field. If no key is provided, or if a list of keys is
+provided, throws an error (user almost certainly wanted <em>get</em>, not
+<em>getObj</em>).</p>
+<p>In general, if you don't know why you'd want the base object(s) instead
+of the value(s) of the object(s), you don't want to use this method.</p>
+<p>Warns on unknown keys or uninitialized object.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nv">method</span> getObj <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">set</span> outL <span class="k">{}</span>
+        <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nv">my</span> isInitialized<span class="k">]}</span> <span class="k">{</span>
+            <span class="nv">log</span><span class="o">::</span>warn <span class="s2">&quot;Reading from uninitialized object [self object] of\</span>
+<span class="s2">                            type [info object class [self object]]&quot;</span>
+        <span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-36'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-36'>#</a>
+      </div>
+      <p>No keys: throw an error</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="k">if</span> <span class="k">{</span><span class="nv">$args</span> <span class="o">==</span> <span class="k">{}}</span> <span class="k">{</span>
+            <span class="k">error</span> <span class="s2">&quot;No key provided to \&quot;getObj\&quot; for object [self object] of\</span>
+<span class="s2">                            type [info object class [self object]]&quot;</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-37'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-37'>#</a>
+      </div>
+      <p>Single key: look up field, return object (if field is array, return
+list of objects).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$args</span><span class="k">]</span> <span class="o">==</span> <span class="nv">1</span><span class="k">}</span> <span class="k">{</span>
+            <span class="k">if</span> <span class="k">{</span><span class="nv">$args</span> <span class="nv">in</span> <span class="nv">$NameL</span><span class="k">}</span> <span class="k">{</span>
+                <span class="k">if</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$args</span><span class="k">)]</span> <span class="o">&gt;</span> <span class="nv">1</span><span class="k">}</span> <span class="k">{</span>
+                    <span class="k">set</span> tempL <span class="k">{}</span>
+                    <span class="k">foreach</span> obj <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$args</span><span class="k">)</span> <span class="k">{</span>
+                        <span class="nb">lappend</span> tempL <span class="nv">$obj</span>
+                    <span class="k">}</span>
+                    <span class="k">return</span> <span class="nv">$tempL</span>
+                <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+                    <span class="k">return</span> <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$args</span><span class="k">)</span>
+                <span class="k">}</span>
+            <span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">info</span> exists DataArray<span class="k">(</span><span class="nv">$args</span><span class="k">)]}</span> <span class="k">{</span>
+                <span class="k">return</span> <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$args</span><span class="k">)</span>
+            <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+                <span class="nv">my</span> variable <span class="nv">$args</span>
+                <span class="k">if</span> <span class="k">{[</span><span class="nb">info</span> exists <span class="nv">$args</span><span class="k">]}</span> <span class="k">{</span>
+                    <span class="k">return</span> <span class="k">[set</span> <span class="nv">$args</span><span class="k">]</span>
+                <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+                    <span class="nv">log</span><span class="o">::</span>error <span class="s2">&quot;Requesting non-existent field in\</span>
+<span class="s2">                            [info object class [self object]] [self object]: \</span>
+<span class="s2">                            \&quot;$args\&quot; not in \&quot;[array names DataArray]\&quot;&quot;</span>
+                <span class="k">}</span>
+            <span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-38'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-38'>#</a>
+      </div>
+      <p>Multiple keys: throw error</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="k">error</span> <span class="s2">&quot;Too many keys provided to \&quot;getObj\&quot; for object [self object] of\</span>
+<span class="s2">                            type [info object class [self object]]&quot;</span>
+        <span class="k">}</span>
+        <span class="k">return</span> <span class="nv">$outL</span>
+    <span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-39'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-39'>#</a>
+      </div>
+      <hr />
+<h3>autoObject.set <em>key/valueList</em></h3>
 <p>Simple mutator: accepts a list of key/value pairs, and for each key sets
 the associated value to the supplied value.
 Warns on but does not reject unknown keys.  Unknown keys have values
@@ -752,15 +989,16 @@ involved in <em>toList</em>/<em>fromList</em> operations.</p>
     <div class='code'>
       <div class="highlight"><pre>    <span class="nv">method</span> set <span class="k">{</span><span class="nv">args</span><span class="k">}</span> <span class="k">{</span>
         <span class="k">if</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$args</span><span class="k">]</span> <span class="o">%</span><span class="nv">2</span> <span class="o">==</span> <span class="mi">1</span><span class="k">}</span> <span class="k">{</span>
-            <span class="k">error</span> <span class="s2">&quot;Odd number of arguments for set - \</span>
+            <span class="k">error</span> <span class="s2">&quot;Odd number of arguments ([llength $args]) for set - \</span>
 <span class="s2">                        set requires key/value pairs only.&quot;</span>
         <span class="k">}</span>
         <span class="k">foreach</span> <span class="k">{</span><span class="nv">key</span> val<span class="k">}</span> <span class="nv">$args</span> <span class="k">{</span>
-            <span class="nv">log</span><span class="o">::</span>debug <span class="s2">&quot;$key: $val&quot;</span>
+            <span class="nv">log</span><span class="o">::</span>debug <span class="s2">&quot;setting $key: $val&quot;</span>
             <span class="k">if</span> <span class="k">{</span><span class="nv">$key</span> <span class="nv">eq</span> <span class="s2">&quot;Initialized&quot;</span><span class="k">}</span> <span class="k">{</span>
                 <span class="k">set</span> Initialized <span class="nv">$val</span>
                 <span class="k">continue</span>
-            <span class="k">}</span> <span class="k">elseif</span> <span class="k">{</span><span class="nv">$key</span> <span class="nv">ni</span> <span class="nv">$NameL</span><span class="k">}</span> <span class="k">{</span>
+            <span class="k">}</span>
+            <span class="k">if</span> <span class="k">{</span><span class="nv">$key</span> <span class="nv">ni</span> <span class="nv">$NameL</span><span class="k">}</span> <span class="k">{</span>
                 <span class="nv">log</span><span class="o">::</span>warn <span class="s2">&quot;Warning: trying to set non-standard field in \</span>
 <span class="s2">                        [info object class [self object]] [self object]: \</span>
 <span class="s2">                        $key &lt;- $val&quot;</span>
@@ -770,10 +1008,10 @@ involved in <em>toList</em>/<em>fromList</em> operations.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-35'>
+  <div class='section' id='section-40'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-35'>#</a>
+        <a class='octothorpe' href='#section-40'>#</a>
       </div>
       <p>Check for arrayed objects or single object</p>
     </div>
@@ -783,10 +1021,10 @@ involved in <em>toList</em>/<em>fromList</em> operations.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-36'>
+  <div class='section' id='section-41'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-36'>#</a>
+        <a class='octothorpe' href='#section-41'>#</a>
       </div>
       <p>Fixed length array of objects</p>
     </div>
@@ -804,10 +1042,10 @@ involved in <em>toList</em>/<em>fromList</em> operations.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-37'>
+  <div class='section' id='section-42'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-37'>#</a>
+        <a class='octothorpe' href='#section-42'>#</a>
       </div>
       <p>Variable length array of objects - reject if the data
 is too long, or so small that it's not big enough to
@@ -828,10 +1066,10 @@ fill the minimum.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-38'>
+  <div class='section' id='section-43'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-38'>#</a>
+        <a class='octothorpe' href='#section-43'>#</a>
       </div>
       <p>Set the objects to the new values.  If we have
 too many objects, unset the unused ones.  If we
@@ -854,16 +1092,16 @@ have too few, create new ones.</p>
             <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
                 <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$key</span><span class="k">)</span> <span class="k">set</span> <span class="nv">$val</span>
             <span class="k">}</span>
+            <span class="k">set</span> Initialized true
         <span class="k">}</span>
-        <span class="k">set</span> Initialized true
     <span class="k">}</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-39'>
+  <div class='section' id='section-44'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-39'>#</a>
+        <a class='octothorpe' href='#section-44'>#</a>
       </div>
       <hr />
 <h3>autoObject.follow</h3>
@@ -886,16 +1124,16 @@ is a list of objects, returns a list of FQPs, one per object.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-40'>
+  <div class='section' id='section-45'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-40'>#</a>
+        <a class='octothorpe' href='#section-45'>#</a>
       </div>
       <hr />
 <h3>autoObject.createWidget</h3>
 <p>Returns a Tk name of a frame that encloses a grid of name/value paired
-widgets.  Names are labels; values are whatever widget the value object
-has mixed in that responds to the createWidget method call.
+widgets.  Names are labels; values are whatever widget the field object
+has mixed in that responds to the <em>createWidget</em> method call.
 Individual field widgets have the option to add a widget to a special
 list of large widgets that show up at the bottom of the grid (BigWidgetL).</p>
     </div>
@@ -906,10 +1144,10 @@ list of large widgets that show up at the bottom of the grid (BigWidgetL).</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-41'>
+  <div class='section' id='section-46'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-41'>#</a>
+        <a class='octothorpe' href='#section-46'>#</a>
       </div>
       <p>Create encapsulating frame</p>
     </div>
@@ -920,48 +1158,56 @@ list of large widgets that show up at the bottom of the grid (BigWidgetL).</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-42'>
+  <div class='section' id='section-47'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-42'>#</a>
+        <a class='octothorpe' href='#section-47'>#</a>
       </div>
       <p>@@@ TODO %%% llength NameL is not really the right number for
 number of rows - doesn't take into account dropped reserved
 fields or arrays/bitfields that take multiple rows.  Figure
-out a better count later.</p>
+out a better count later.  Cap it at 20 to ensure it fits on
+most monitors.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>        <span class="k">if</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$NameL</span><span class="k">]</span> <span class="o">&gt;</span> <span class="nv">20</span><span class="k">}</span> <span class="k">{</span>
-            <span class="k">set</span> splitRow <span class="k">[expr</span> <span class="k">{([</span><span class="nb">llength</span> <span class="nv">$NameL</span><span class="k">]</span> <span class="o">+</span> <span class="nv">1</span><span class="k">)</span><span class="o">/</span> <span class="nv">2</span><span class="k">}]</span>
-        <span class="k">}</span> <span class="k">else</span> <span class="k">{</span></pre></div>
+      <div class="highlight"><pre>        <span class="k">set</span> splitRow <span class="k">[expr</span> <span class="k">{</span><span class="nv">min</span><span class="k">(</span><span class="nv">$WidgetTopRows</span><span class="err">,</span> <span class="k">([</span><span class="nb">llength</span> <span class="nv">$NameL</span><span class="k">]</span> <span class="o">+</span> <span class="nv">1</span><span class="k">)</span><span class="o">/</span> <span class="nv">2</span><span class="k">)}]</span>
+        <span class="k">set</span> colNum <span class="mi">1</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-43'>
+  <div class='section' id='section-48'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-43'>#</a>
+        <a class='octothorpe' href='#section-48'>#</a>
       </div>
-      <p>Even if we think we don't need to split, split at 35 to
-keep at the size of the monitor :-P</p>
+      <p>Iterate over all fields, creating pairs of labels (for name)
+and display widgets (for values).</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>            <span class="k">set</span> splitRow <span class="mi">35</span>
-        <span class="k">}</span>
-        <span class="k">set</span> colNum <span class="mi">1</span>
-        <span class="k">foreach</span> key <span class="nv">$NameL</span> <span class="k">{</span>
-            <span class="k">set</span> winName <span class="k">[</span><span class="nb">string</span> tolower <span class="nv">$key</span><span class="k">]</span>
-            <span class="k">if</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$key</span><span class="k">)]</span> <span class="o">==</span> <span class="nv">1</span><span class="k">}</span> <span class="k">{</span>
+      <div class="highlight"><pre>        <span class="k">foreach</span> key <span class="nv">$NameL</span> <span class="k">{</span>
+            <span class="k">set</span> winName <span class="k">[</span><span class="nb">string</span> tolower <span class="nv">$key</span><span class="k">]</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-49'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-49'>#</a>
+      </div>
+      <p>First, handle non-array fields</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>            <span class="k">if</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$key</span><span class="k">)]</span> <span class="o">==</span> <span class="nv">1</span><span class="k">}</span> <span class="k">{</span>
                 <span class="nv">grid</span> <span class="k">[</span><span class="nv">ttk</span><span class="o">::</span>label <span class="nv">$wname.l$winName</span> <span class="o">-</span>text <span class="nv">$key</span><span class="k">]</span> <span class="o">-</span>column <span class="nv">$colNum</span> <span class="err">\</span>
                         <span class="nv">-row</span> <span class="nv">$row</span> <span class="o">-</span>sticky nsew
                 <span class="k">set</span> keyWidget <span class="k">[</span><span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$key</span><span class="k">)</span> <span class="nv">createWidget</span> <span class="nv">$wname.$winName</span><span class="k">]</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-44'>
+  <div class='section' id='section-50'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-44'>#</a>
+        <a class='octothorpe' href='#section-50'>#</a>
       </div>
       <p>Special support for reserved fields - if no widget
 is returned, don't try to grid it or add rows.</p>
@@ -971,10 +1217,10 @@ is returned, don't try to grid it or add rows.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-45'>
+  <div class='section' id='section-51'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-45'>#</a>
+        <a class='octothorpe' href='#section-51'>#</a>
       </div>
       <p>If creation returns 2 widgets, the first is for the small
 in-row pace, the second is the large breakout version</p>
@@ -986,8 +1232,20 @@ in-row pace, the second is the large breakout version</p>
                 <span class="k">}</span>
                 <span class="nv">grid</span> <span class="nv">$keyWidget</span> <span class="o">-</span>column <span class="k">[expr</span> <span class="nv">$colNum</span> <span class="o">+</span> <span class="mi">1</span><span class="k">]</span> <span class="o">-</span>row <span class="nv">$row</span> <span class="o">-</span>sticky nsew
                 <span class="nb">incr</span> row
-                <span class="k">set</span> FieldInfo<span class="k">(</span><span class="nv">$key</span><span class="err">,</span><span class="nv">widget</span><span class="k">)</span> <span class="nv">$keyWidget</span>
-            <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+                <span class="k">set</span> FieldInfo<span class="k">(</span><span class="nv">$key</span><span class="err">,</span><span class="nv">widget</span><span class="k">)</span> <span class="nv">$keyWidget</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-52'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-52'>#</a>
+      </div>
+      <p>Handle field arrays by creating one name label for all, and one
+value display widget per object in the array.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>            <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
                 <span class="nv">grid</span> <span class="k">[</span><span class="nv">ttk</span><span class="o">::</span>label <span class="nv">$wname.l$winName</span> <span class="o">-</span>text <span class="nv">$key</span><span class="k">]</span> <span class="o">-</span>column <span class="nv">$colNum</span> <span class="err">\</span>
                         <span class="nv">-row</span> <span class="nv">$row</span> <span class="o">-</span>sticky nsew
                 <span class="k">set</span> widL <span class="k">{}</span>
@@ -997,10 +1255,10 @@ in-row pace, the second is the large breakout version</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-46'>
+  <div class='section' id='section-53'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-46'>#</a>
+        <a class='octothorpe' href='#section-53'>#</a>
       </div>
       <p>Special support for reserved fields - if no widget
 is returned, don't try to grid it or add rows.</p>
@@ -1010,10 +1268,10 @@ is returned, don't try to grid it or add rows.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-47'>
+  <div class='section' id='section-54'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-47'>#</a>
+        <a class='octothorpe' href='#section-54'>#</a>
       </div>
       <p>If creation returns 2 widgets, the first is for the small
 in-row pace, the second is the large breakout version</p>
@@ -1029,8 +1287,21 @@ in-row pace, the second is the large breakout version</p>
                     <span class="nb">incr</span> row
                 <span class="k">}</span>
                 <span class="k">set</span> FieldInfo<span class="k">(</span><span class="nv">$key</span><span class="err">,</span><span class="nv">widget</span><span class="k">)</span> <span class="nv">$widL</span>
-            <span class="k">}</span>
-            <span class="k">if</span> <span class="k">{</span><span class="nv">$row</span> <span class="o">&gt;</span> <span class="nv">$splitRow</span><span class="k">}</span> <span class="k">{</span>
+            <span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-55'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-55'>#</a>
+      </div>
+      <p>Columns over 20 items get unwieldy, and don't fit well on smaller
+monitors.
+@@@ TODO %%% make this value configurable &amp; save in .ini file.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>            <span class="k">if</span> <span class="k">{</span><span class="nv">$row</span> <span class="o">&gt;</span> <span class="nv">$splitRow</span><span class="k">}</span> <span class="k">{</span>
                 <span class="nv">grid</span> columnconfigure <span class="nv">$wname</span> <span class="nv">$colNum</span> <span class="o">-</span>weight <span class="mi">1</span>
                 <span class="nv">grid</span> columnconfigure <span class="nv">$wname</span> <span class="k">[expr</span> <span class="nv">$colNum</span> <span class="o">+</span> <span class="mi">1</span><span class="k">]</span> <span class="o">-</span>weight <span class="mi">4</span>
                 <span class="k">set</span> row <span class="mi">1</span>
@@ -1049,10 +1320,10 @@ in-row pace, the second is the large breakout version</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-48'>
+  <div class='section' id='section-56'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-48'>#</a>
+        <a class='octothorpe' href='#section-56'>#</a>
       </div>
       <hr />
 <h3>autoObject.fromList <em>inputList</em></h3>
@@ -1067,10 +1338,10 @@ defining array, and stores it in the object's data array.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-49'>
+  <div class='section' id='section-57'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-49'>#</a>
+        <a class='octothorpe' href='#section-57'>#</a>
       </div>
       <p>Check that input is correct size for object</p>
     </div>
@@ -1079,10 +1350,10 @@ defining array, and stores it in the object's data array.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-50'>
+  <div class='section' id='section-58'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-50'>#</a>
+        <a class='octothorpe' href='#section-58'>#</a>
       </div>
       <p>In all cases, too large is an error</p>
     </div>
@@ -1093,10 +1364,10 @@ defining array, and stores it in the object's data array.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-51'>
+  <div class='section' id='section-59'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-51'>#</a>
+        <a class='octothorpe' href='#section-59'>#</a>
       </div>
       <p>Block is too small and object is not variable-length</p>
     </div>
@@ -1107,25 +1378,29 @@ defining array, and stores it in the object's data array.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-52'>
+  <div class='section' id='section-60'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-52'>#</a>
+        <a class='octothorpe' href='#section-60'>#</a>
       </div>
       <p>Variable size is allowed to be smaller but not larger</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>            <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+      <div class="highlight"><pre>            <span class="k">}</span> <span class="k">elseif</span> <span class="k">{</span> <span class="nv">$Variable_size</span> <span class="o">&gt;</span> <span class="k">[</span><span class="nb">llength</span> <span class="nv">$dataL</span><span class="k">]}</span> <span class="k">{</span>
+                <span class="nv">log</span><span class="o">::</span>error <span class="s2">&quot;Input for [info object class [self object]] has an\</span>
+<span class="s2">                        incorrect length: $dl; (max allowed is $BlockSize,\</span>
+<span class="s2">                        min is $Variable_size).&quot;</span>
+            <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
                 <span class="nv">log</span><span class="o">::</span>debug <span class="s2">&quot;Input for [info object class [self object]] is size\</span>
 <span class="s2">                        $dl bytes (max allowed is $BlockSize, min is\</span>
 <span class="s2">                        $Variable_size).&quot;</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-53'>
+  <div class='section' id='section-61'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-53'>#</a>
+        <a class='octothorpe' href='#section-61'>#</a>
       </div>
       <p>Special case - clear out the existing data, because we
 won't loop past the end of the 0 byte input block.</p>
@@ -1143,10 +1418,10 @@ won't loop past the end of the 0 byte input block.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-54'>
+  <div class='section' id='section-62'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-54'>#</a>
+        <a class='octothorpe' href='#section-62'>#</a>
       </div>
       <p>Input is acceptable.  Process it in field order.</p>
     </div>
@@ -1157,25 +1432,57 @@ won't loop past the end of the 0 byte input block.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-55'>
+  <div class='section' id='section-63'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-55'>#</a>
+        <a class='octothorpe' href='#section-63'>#</a>
       </div>
       <p>Once we're past the end of the list, stop processing.</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre>            <span class="k">if</span> <span class="k">{</span><span class="nv">$offset</span> <span class="o">&gt;=</span> <span class="nv">$dl</span><span class="k">}</span> <span class="k">{</span>
                 <span class="k">break</span>
-            <span class="k">}</span>
-            <span class="k">set</span> byteL <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$dataL</span> <span class="nv">$offset</span> <span class="k">[expr</span> <span class="k">{</span><span class="nv">$offset</span> <span class="o">+</span> <span class="nv">$size</span> <span class="nv">-</span> <span class="mi">1</span><span class="k">}]]</span>
-
+            <span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-64'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-64'>#</a>
+      </div>
+      <p>Cut off the next field's data from the input list</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>            <span class="k">set</span> byteL <span class="k">[</span><span class="nb">lrange</span> <span class="nv">$dataL</span> <span class="nv">$offset</span> <span class="k">[expr</span> <span class="k">{</span><span class="nv">$offset</span> <span class="o">+</span> <span class="nv">$size</span> <span class="nv">-</span> <span class="mi">1</span><span class="k">}]]</span>
             <span class="nv">log</span><span class="o">::</span>debug <span class="s2">&quot;Getting $name value from dataL($offset -\</span>
-<span class="s2">                    [expr {$offset + $size - 1}]): $byteL&quot;</span>
-            <span class="k">if</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$name</span><span class="k">)]</span> <span class="o">==</span> <span class="nv">1</span><span class="k">}</span> <span class="k">{</span>
+<span class="s2">                    [expr {$offset + $size - 1}]): $byteL&quot;</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-65'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-65'>#</a>
+      </div>
+      <p>Single value field</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>            <span class="k">if</span> <span class="k">{[</span><span class="nb">llength</span> <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$name</span><span class="k">)]</span> <span class="o">==</span> <span class="nv">1</span><span class="k">}</span> <span class="k">{</span>
                 <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$name</span><span class="k">)</span> <span class="nv">fromList</span> <span class="nv">$byteL</span>
-                <span class="nv">log</span><span class="o">::</span>debug <span class="s2">&quot;$name set to [$DataArray($name) get]&quot;</span>
-            <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+                <span class="nv">log</span><span class="o">::</span>debug <span class="s2">&quot;$name set to [$DataArray($name) get]&quot;</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-66'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-66'>#</a>
+      </div>
+      <p>Array field</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>            <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
                 <span class="k">set</span> bytesPerObj <span class="k">[expr</span> <span class="k">{</span><span class="nv">$size</span> <span class="o">/</span> <span class="nv">$FieldInfo</span><span class="k">(</span><span class="nv">$name</span><span class="err">,</span><span class="nv">arrcnt</span><span class="k">)}]</span>
                 <span class="k">set</span> offset <span class="mi">0</span>
                 <span class="k">if</span> <span class="k">{</span><span class="nv">$Variable_size</span> <span class="o">!=</span> <span class="nv">0</span><span class="k">}</span> <span class="k">{</span>
@@ -1183,10 +1490,10 @@ won't loop past the end of the 0 byte input block.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-56'>
+  <div class='section' id='section-67'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-56'>#</a>
+        <a class='octothorpe' href='#section-67'>#</a>
       </div>
       <p>If variable size, set the number of objects to match
 the input data.  If we have too many objects, unset the
@@ -1203,8 +1510,20 @@ unused ones.  If we have too few, create new ones.</p>
                                         <span class="k">[</span><span class="nb">llength</span> <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$name</span><span class="k">)]}]</span> <span class="err">\</span>
                                         <span class="k">[</span><span class="nv">$FieldInfo</span><span class="k">(</span><span class="nv">$name</span><span class="err">,</span><span class="nv">tname</span><span class="k">)</span> <span class="nv">new</span> <span class="k">{}]]</span>
                     <span class="k">}</span>
-                <span class="k">}</span>
-                <span class="k">foreach</span> obj <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$name</span><span class="k">)</span> <span class="k">{</span>
+                <span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-68'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-68'>#</a>
+      </div>
+      <p>For each object in the array, cut off the right number of
+bytes and feed it to them.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>                <span class="k">foreach</span> obj <span class="nv">$DataArray</span><span class="k">(</span><span class="nv">$name</span><span class="k">)</span> <span class="k">{</span>
                     <span class="k">set</span> start <span class="nv">$offset</span>
                     <span class="nb">incr</span> offset <span class="nv">$bytesPerObj</span>
                     <span class="k">set</span> end <span class="k">[expr</span> <span class="k">{</span><span class="nv">$offset</span> <span class="nv">-</span> <span class="mi">1</span><span class="k">}]</span>
@@ -1219,14 +1538,14 @@ unused ones.  If we have too few, create new ones.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-57'>
+  <div class='section' id='section-69'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-57'>#</a>
+        <a class='octothorpe' href='#section-69'>#</a>
       </div>
       <hr />
 <h3>autoObject.toList</h3>
-<p>Getter to byte-list format, as required e.g. to send to a serial target.
+<p>Getter to byte-list format (a list of numbers 0-255 representing bytes).
 Gets the byte-list representations of the field objects in the order
 defined by the defining array, collects them into a combined byte list,
 and returns the list.</p>
@@ -1237,10 +1556,10 @@ and returns the list.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-58'>
+  <div class='section' id='section-70'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-58'>#</a>
+        <a class='octothorpe' href='#section-70'>#</a>
       </div>
       <p>Iterate over the ordered list of field names created by the
 constructor.</p>
@@ -1254,10 +1573,10 @@ constructor.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-59'>
+  <div class='section' id='section-71'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-59'>#</a>
+        <a class='octothorpe' href='#section-71'>#</a>
       </div>
       <p>List should have been the right size coming into each field.</p>
     </div>
@@ -1276,10 +1595,10 @@ constructor.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-60'>
+  <div class='section' id='section-72'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-60'>#</a>
+        <a class='octothorpe' href='#section-72'>#</a>
       </div>
       <p>Field object should generate correct list length.</p>
     </div>
@@ -1297,12 +1616,12 @@ constructor.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-61'>
+  <div class='section' id='section-73'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-61'>#</a>
+        <a class='octothorpe' href='#section-73'>#</a>
       </div>
-      <p>Convert to list of non-negative byte values (range 0-255)</p>
+      <p>Just in case, convert to list of non-negative byte values (range 0-255)</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre>        <span class="k">set</span> retL <span class="k">{}</span>
@@ -1314,10 +1633,10 @@ constructor.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-62'>
+  <div class='section' id='section-74'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-62'>#</a>
+        <a class='octothorpe' href='#section-74'>#</a>
       </div>
       <hr />
 <h3>autoObject.toString</h3>
@@ -1341,10 +1660,10 @@ the colon is 36 columns from the left margin.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-63'>
+  <div class='section' id='section-75'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-63'>#</a>
+        <a class='octothorpe' href='#section-75'>#</a>
       </div>
       <p>Iterate over the ordered list of field names created by the
 constructor.</p>
@@ -1357,10 +1676,10 @@ constructor.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-64'>
+  <div class='section' id='section-76'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-64'>#</a>
+        <a class='octothorpe' href='#section-76'>#</a>
       </div>
       <p>Set field value string with string from field objects</p>
     </div>
@@ -1385,10 +1704,10 @@ constructor.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-65'>
+  <div class='section' id='section-77'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-65'>#</a>
+        <a class='octothorpe' href='#section-77'>#</a>
       </div>
       <p>Append field name &amp; value strings to output string.</p>
     </div>
@@ -1398,10 +1717,10 @@ constructor.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-66'>
+  <div class='section' id='section-78'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-66'>#</a>
+        <a class='octothorpe' href='#section-78'>#</a>
       </div>
       <p>Be sure to document any extra fields in the data dict</p>
     </div>
@@ -1424,15 +1743,15 @@ constructor.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-67'>
+  <div class='section' id='section-79'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-67'>#</a>
+        <a class='octothorpe' href='#section-79'>#</a>
       </div>
       <hr />
 <h4>autoObject.fromByteArray</h4>
 <p>From e.g. wire format or COM interface.  Converts from binary string to
-list format, then calls fromList.</p>
+byte-list format, then calls fromList.</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre>    <span class="nv">method</span> fromByteArray <span class="k">{</span><span class="nv">byteArray</span><span class="k">}</span> <span class="k">{</span>
@@ -1442,15 +1761,15 @@ list format, then calls fromList.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-68'>
+  <div class='section' id='section-80'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-68'>#</a>
+        <a class='octothorpe' href='#section-80'>#</a>
       </div>
       <hr />
 <h4>autoObject.toByteArray</h4>
 <p>To e.g. wire format or COM interface.  Calls toList, then converts from
-list format to binary string.</p>
+byte-list format to binary string.</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre>    <span class="nv">method</span> toByteArray <span class="k">{}</span> <span class="k">{</span>
@@ -1461,10 +1780,10 @@ list format to binary string.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-69'>
+  <div class='section' id='section-81'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-69'>#</a>
+        <a class='octothorpe' href='#section-81'>#</a>
       </div>
       <hr />
 <h4>autoObject.SortByOffset</h4>
@@ -1486,10 +1805,10 @@ list format to binary string.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-70'>
+  <div class='section' id='section-82'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-70'>#</a>
+        <a class='octothorpe' href='#section-82'>#</a>
       </div>
       <hr />
 <h4>autoObject.IterField</h4>

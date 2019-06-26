@@ -8,4 +8,4 @@
 #
 ###########################################################################
 
-package ifneeded autoObject 0.7 [list source [file join $dir autoObject.tcl]]
+package ifneeded autoObject 0.11 [list source [file join $dir autoObject.tcl]]

@@ -25,7 +25,7 @@
 #
 ###########################################################################
 #
-# Copyright 2015-17, Erik N. Johnson
+# Copyright 2015-18, Erik N. Johnson
 #
 # This package documentation is auto-generated with
 # Pycco: <https://pycco-docs.github.io/pycco/>
@@ -526,12 +526,12 @@ oo::class create ::AutoObject::enum_mix {
             set MyValue $dA($newVal)
         } else {
             ;# Sometimes input comes in 0x## hex format. Expr it to decimal.
-            catch {set newVal [expr $newVal]}
-            if {[info exists dA(val-$newVal)]} {
-                set MyValue $newVal
+            catch {set expVal [expr $newVal]}
+            if {[info exists dA(val-$expVal)]} {
+                set MyValue $expVal
             } else {
-                log::warn "Tried to set enum [self] to unknown symbol $newVal"
-                set MyValue $newVal
+                log::warn "Tried to set enum [self] ([info object class [self object]]) to unknown symbol $expVal"
+                set MyValue $expVal
             }
         }
     }
